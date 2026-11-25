@@ -12,14 +12,14 @@ for (i, o) in [
     ("vieejt", "việt"), ("tieengs", "tiếng"), ("nguwowif", "người"), ("dduwowngf", "đường"),
     ("hoaf", "hoà"), ("khoer", "khoẻ"), ("thuys", "thuý"), ("toans", "toán"), ("quas", "quá"),
     ("giaf", "già"), ("gif", "gì"), ("khoais", "khoái"), ("tw", "tư"), ("aw", "ă"), ("muaf", "mùa"),
-    ("Vieejt", "Việt"), ("DDaay", "Đây"), ("ass", "ass"), ("aaa", "aa"), ("ddd", "dd"),
+    ("Vieejt", "Việt"), ("DDaay", "Đây"), ("ass", "as"), ("tesst", "test"), ("Tesst", "Test"), ("classs", "class"), ("aaa", "aa"), ("ddd", "dd"),
     ("telex", "telex"), ("thuowr", "thuở"), ("khoeo", "khoeo"), ("hoawcj", "hoặc"), ("giuwowngf", "giường"), ("quoocs", "quốc"),
-    ("hoafz", "hoa"), ("hoaz", "hoaz"), ("html", "html"), ("class", "class"), ("cars", "cá"),
+    ("hoafz", "hoa"), ("hoaz", "hoaz"), ("html", "html"), ("class", "clas"), ("nexxt", "next"), ("cars", "cá"),
 ] { check(telex, i, o) }
 
 for (i, o) in [
     ("vie65t", "việt"), ("tie61ng", "tiếng"), ("ngu7o72i", "người"), ("d9u7o7ng2", "đường"),
-    ("hoa2", "hoà"), ("a8", "ă"), ("a11", "a11"), ("qua1", "quá"), ("Vie65t", "Việt"),
+    ("hoa2", "hoà"), ("a8", "ă"), ("a11", "a1"), ("qua1", "quá"), ("Vie65t", "Việt"),
 ] { check(vni, i, o) }
 
 var classic = telex; classic.modernTone = false

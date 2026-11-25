@@ -26,12 +26,22 @@ struct Engine {
     func convert(_ keys: String) -> String {
         var w: [Letter] = []
         var tone = 0
+        var raw: [Character] = []   // keys as typed, minus modifier keys that were undone
         for k in keys {
             let c = Character(k.lowercased())
-            if !apply(c, &w, &tone) { w.append(Letter(ch: c, upper: k.isUppercase)) }
+            let before = (tone, w.map(\.mod))
+            if !apply(c, &w, &tone) {
+                // Pressed twice to undo ("tesst", "aaa"): the first press must not survive in raw either.
+                if before.0 != tone || before.1 != w.map(\.mod),
+                   let j = raw.lastIndex(where: { Character($0.lowercased()) == c }) {
+                    raw.remove(at: j)
+                }
+                w.append(Letter(ch: c, upper: k.isUppercase))
+            }
+            raw.append(k)
         }
         // Not one Vietnamese syllable (e.g. "telex", "html") -> keep the raw keys.
-        return vowelGroups(w) > 1 || !hasValidFinal(w) ? keys : render(w, tone)
+        return vowelGroups(w) > 1 || !hasValidFinal(w) ? String(raw) : render(w, tone)
     }
 
     /// Returns true if key `c` was consumed as a transform, false if it should be appended literally.
