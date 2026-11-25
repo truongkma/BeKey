@@ -88,6 +88,7 @@ Sau khi gỡ, xoá BeKey khỏi **Input Sources**.
 | Đã chọn BeKey nhưng gõ không ra dấu | Chạy `open ~/Library/Input\ Methods/BeKey.app`. Nếu vẫn không được ở một ứng dụng đã mở từ trước, thoát hẳn ứng dụng đó (⌘Q) rồi mở lại |
 | Có ký tự lạ hoặc chữ bị lặp | Kiểm tra xem còn bộ gõ tiếng Việt nào khác đang chạy không và tắt nó |
 | Thỉnh thoảng có gạch chân | Nhìn biểu tượng trên thanh menu: nếu không phải **V** thì bạn đang dùng bộ Telex của macOS; xoá nó khỏi Input Sources |
+| Trong terminal, 1–2 ký tự bị gạch chân rồi mất (vd. khi gõ "gõ", "tôi") | Không phải BeKey: plugin **zsh-syntax-highlighting** gạch chân chữ trùng tên thư mục/lệnh (`go`, `to`…) trong lúc gõ dở. Muốn tắt: thêm `ZSH_HIGHLIGHT_STYLES[path]=none` và `ZSH_HIGHLIGHT_STYLES[path_prefix]=none` vào cuối `~/.zshrc` |
 
 ## Phát triển
 
