@@ -20,14 +20,16 @@ final class InputController: IMKInputController {
     private var committed = ""      // start of the word already sent before switching to marked text
     private var erase = false       // app can't replace text (terminal): fix the word with DEL + retype
 
-    /// Terminal emulators ignore replacementRange (iTerm2 even reports a correct caret, so it can't be
-    /// detected); DEL is Backspace there, so DEL + retype from the first key, without underline.
-    private static let terminals: Set<String> = [
-        "com.googlecode.iterm2", "com.stablyai.orca", "com.cmuxterm.app", "com.mitchellh.ghostty",
-        "dev.warp.Warp-Stable", "co.zeit.hyper", "org.tabby",
-    ]
+    /// Native terminal emulators ignore replacementRange (iTerm2 even reports a correct caret, so it can't
+    /// be detected); DEL is Backspace there, so DEL + retype from the first key, without underline.
+    /// Never list apps that also have ordinary text fields (Orca Bots drops DEL -> "toôi"): those are
+    /// handled per field by the caret check, falling back to marked text.
+    private static let terminals: Set<String> = ["com.googlecode.iterm2", "com.mitchellh.ghostty", "dev.warp.Warp-Stable"]
     /// Editors mixing text fields and terminals (DEL would be junk in the editor): always marked text.
     private static let markedApps: Set<String> = ["com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92"]
+    /// Apps seen with a field that ignores the caret (Slack, Orca…): start their words as
+    /// marked text so the first letter is never sent early ("dd" -> "dđ"). Worst case is an underline.
+    private static var noCaretApps = Set(UserDefaults.standard.stringArray(forKey: "noCaretApps") ?? [])
 
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
         guard event.type == .keyDown, let client = sender as? IMKTextInput else { return false }
@@ -41,7 +43,8 @@ final class InputController: IMKInputController {
             let location = client.selectedRange().location
             if location == before, location != caret {
                 // Caret never moved after our insert: this field ignores replacementRange (Slack…).
-                // Decided per word, since one app can mix field types.
+                Self.noCaretApps.insert(client.bundleIdentifier() ?? "")
+                UserDefaults.standard.set(Array(Self.noCaretApps), forKey: "noCaretApps")   // remembered across logins
                 marked = true
                 committed = shown
             } else if location != caret {
@@ -65,7 +68,8 @@ final class InputController: IMKInputController {
             if keys.isEmpty {
                 let app = client.bundleIdentifier() ?? ""
                 erase = Self.terminals.contains(app)
-                marked = !erase && (Self.markedApps.contains(app) || client.selectedRange().location == NSNotFound)
+                marked = !erase && (Self.markedApps.contains(app) || Self.noCaretApps.contains(app)
+                    || client.selectedRange().location == NSNotFound)
             }
             keys.append(ch)
             show(client)
