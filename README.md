@@ -73,6 +73,8 @@ Ví dụ: `Vieejt Nam` / `Vie65t Nam` → **Việt Nam**; `nguwowif` → **ngư�
 | | Homebrew | Từ mã nguồn |
 |---|---|---|
 | Cập nhật | `brew upgrade --cask bekey` | `git pull && ./build.sh install` |
+
+Bản cập nhật qua Homebrew có hiệu lực từ lần đăng nhập sau (BeKey đang chạy không bị tắt, để các ứng dụng không mất kết nối). Cập nhật từ mã nguồn khởi động lại BeKey ngay; nếu ứng dụng nào gõ không ra dấu, thoát hẳn (⌘Q) rồi mở lại.
 | Gỡ cài đặt | `brew uninstall --cask bekey` | `pkill -x BeKey; rm -rf ~/Library/Input\ Methods/BeKey.app` |
 
 Sau khi gỡ, xoá BeKey khỏi **Input Sources**.
@@ -82,6 +84,7 @@ Sau khi gỡ, xoá BeKey khỏi **Input Sources**.
 | Hiện tượng | Cách xử lý |
 |---|---|
 | Không thấy BeKey khi bấm **+** | Đăng xuất rồi đăng nhập lại, sau đó thêm lại |
+| Không thấy biểu tượng **V** trên thanh menu (thường sau khi cài lại) | Trong **Input Sources**, xoá BeKey (**−**) rồi thêm lại (**+**) |
 | Đã chọn BeKey nhưng gõ không ra dấu | Chạy `open ~/Library/Input\ Methods/BeKey.app`. Nếu vẫn không được ở một ứng dụng đã mở từ trước, thoát hẳn ứng dụng đó (⌘Q) rồi mở lại |
 | Có ký tự lạ hoặc chữ bị lặp | Kiểm tra xem còn bộ gõ tiếng Việt nào khác đang chạy không và tắt nó |
 
