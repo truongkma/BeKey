@@ -15,7 +15,11 @@ final class InputController: IMKInputController {
     private var keys = ""           // raw keystrokes of the word being composed
     private var shown = ""          // what that word currently looks like on screen
     private var caret = NSNotFound  // where the caret must be if the user hasn't moved it
-    private var before = NSNotFound // where the app reported the caret before our last insert
+    private var before = NSNotFound // where the caret was before our last insert
+    private var known = NSNotFound  // caret we tracked ourselves while typing fast (kept across spaces)
+    private var fast = false        // this key came right after the previous one
+    private var lastKey: TimeInterval = 0
+    private var guessed = false     // the word's start came from the app's (maybe late) report
     private var marked = false      // fallback when the caret is unknown: use marked text
     private var committed = ""      // start of the word already sent before switching to marked text
     private var erase = false       // app can't replace text (terminal): fix the word with DEL + retype
@@ -32,37 +36,37 @@ final class InputController: IMKInputController {
         "com.stablyai.orca", "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92", "com.cmuxterm.app",
         "co.zeit.hyper", "org.tabby",
     ]
-    /// Fields seen ignoring the caret (Slack search, a web terminal…), by IMK client id, this session only:
-    /// their words start as marked text. Remembering whole apps underlined every field of Chrome/Slack.
-    private static var oddClients = Set<String>()
-
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
         guard event.type == .keyDown, let client = sender as? IMKTextInput else { return false }
+        // Typing fast, apps report the caret a beat late (Chrome, Slack…: "dd" came out "dđ"), and nobody
+        // clicks elsewhere between two quick keys: then trust our own caret, after a pause the app's.
+        fast = event.timestamp - lastKey < 0.5
+        lastKey = event.timestamp
 
         // Shortcuts (⌘C, ⌃A, ⌥…) belong to the app.
         if !event.modifierFlags.intersection([.command, .control, .option]).isEmpty {
             commit(client)
+            known = NSNotFound
             return false
         }
         if !keys.isEmpty, !marked, !erase {
             let location = client.selectedRange().location
-            if location == before, location != caret {
-                // Caret never moved after our insert: this field ignores replacementRange.
-                let app = client.bundleIdentifier() ?? ""
-                if Self.embeddedTerminalApps.contains(app) {
-                    erase = true   // a terminal pane: DEL + retype for the rest of this word
-                } else {           // no DEL there: marked text, and this field's next words start marked
-                    Self.oddClients.insert(client.uniqueClientIdentifierString() ?? "")
-                    marked = true
-                    committed = shown
-                }
-            } else if location != caret {
-                reset()   // user clicked / moved the caret: start a fresh word
+            if location == before, location != caret,
+               Self.embeddedTerminalApps.contains(client.bundleIdentifier() ?? "") {
+                erase = true   // xterm.js snapped the caret back: DEL + retype for the rest of this word
+            } else if !fast, location != NSNotFound, location != caret {
+                reset()   // after a pause the app's caret is reliable: the user clicked / moved it
+            } else if guessed, keys.count == 1, location != NSNotFound, location > caret {
+                before += location - caret   // that first report was late (e.g. right after Enter)
+                caret = location
             }
         }
 
         if event.keyCode == 51 {   // Delete
-            guard !keys.isEmpty else { return false }
+            guard !keys.isEmpty else {   // the app deletes one character itself
+                known = known > 0 && known != NSNotFound ? known - 1 : NSNotFound
+                return false
+            }
             keys.removeLast()
             show(client)
             return true
@@ -79,7 +83,8 @@ final class InputController: IMKInputController {
                 let noCaret = client.selectedRange().location == NSNotFound
                 // A caret-less field inside an app with embedded terminals is a terminal (cmux's Ghostty view).
                 erase = Self.terminals.contains(app) || (noCaret && Self.embeddedTerminalApps.contains(app))
-                marked = !erase && (noCaret || Self.oddClients.contains(client.uniqueClientIdentifierString() ?? ""))
+                marked = !erase && noCaret
+                if erase || marked { known = NSNotFound }   // those modes don't track the caret
             }
             keys.append(ch)
             show(client)
@@ -87,6 +92,10 @@ final class InputController: IMKInputController {
         }
         // Space, Enter, punctuation, arrows…: finish the word, then let the app handle the key.
         commit(client)
+        // Space/punctuation adds one character; Enter, Tab, arrows… may go anywhere.
+        let printable = event.characters?.unicodeScalars.count == 1
+            && (0x20..<0x7f).contains(event.characters!.unicodeScalars.first!.value)
+        known = printable && known != NSNotFound ? known + 1 : NSNotFound
         return false
     }
 
@@ -95,8 +104,8 @@ final class InputController: IMKInputController {
     }
 
     // Switching app/field: never carry a half-typed word into the new client.
-    override func activateServer(_ sender: Any!) { reset() }
-    override func deactivateServer(_ sender: Any!) { commit(sender as? IMKTextInput) }
+    override func activateServer(_ sender: Any!) { reset(); known = NSNotFound }
+    override func deactivateServer(_ sender: Any!) { commit(sender as? IMKTextInput); known = NSNotFound }
 
     private func show(_ client: IMKTextInput) {
         if marked {
@@ -120,7 +129,8 @@ final class InputController: IMKInputController {
             if keys.isEmpty { reset() }
             return
         }
-        before = client.selectedRange().location
+        guessed = shown.isEmpty ? !(fast && known != NSNotFound) : guessed
+        before = !shown.isEmpty ? caret : guessed ? client.selectedRange().location : known
         // Client-reported caret: reject unknown/absurd values instead of letting the arithmetic below trap.
         guard before != NSNotFound, before >= oldTail, before <= Int.max - newTail.utf16.count else {
             marked = true
@@ -131,11 +141,12 @@ final class InputController: IMKInputController {
         client.insertText(newTail, replacementRange: oldTail == 0 ? notFound : NSRange(location: location, length: oldTail))
         shown = text
         caret = location + newTail.utf16.count
+        known = caret
         if keys.isEmpty { reset() }
     }
 
-    /// The word minus what was already sent. shortcut: if a later key changes that sent part
-    /// (d→đ, a→â on the 1st letter) it can't be fixed; happens at most once per newly learned app.
+    /// The word minus what was already sent before falling back to marked text. shortcut: a later key
+    /// changing that sent part (d→đ) can't be fixed; only after a bogus caret report mid-word.
     private func pending() -> String {
         let text = keys.isEmpty ? "" : Engine(method: Settings.method).convert(keys)
         return text.hasPrefix(committed) ? String(text.dropFirst(committed.count)) : text
