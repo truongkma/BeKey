@@ -32,6 +32,9 @@ final class InputController: IMKInputController {
         "com.stablyai.orca", "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92", "com.cmuxterm.app",
         "co.zeit.hyper", "org.tabby",
     ]
+    /// Apps where marked text shows no underline and skips the app's (English) spellcheck, while direct
+    /// typing gets every Vietnamese word flagged red: compose there as marked text from the first key.
+    private static let markedApps: Set<String> = ["com.tinyspeck.slackmacgap"]
     /// Fields seen ignoring the caret (Slack search, a web terminal…), by IMK client id, this session only:
     /// their words start as marked text. Remembering whole apps underlined every field of Chrome/Slack.
     private static var oddClients = Set<String>()
@@ -79,7 +82,8 @@ final class InputController: IMKInputController {
                 let noCaret = client.selectedRange().location == NSNotFound
                 // A caret-less field inside an app with embedded terminals is a terminal (cmux's Ghostty view).
                 erase = Self.terminals.contains(app) || (noCaret && Self.embeddedTerminalApps.contains(app))
-                marked = !erase && (noCaret || Self.oddClients.contains(client.uniqueClientIdentifierString() ?? ""))
+                marked = !erase && (noCaret || Self.markedApps.contains(app)
+                                    || Self.oddClients.contains(client.uniqueClientIdentifierString() ?? ""))
             }
             keys.append(ch)
             show(client)
