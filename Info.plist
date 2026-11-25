@@ -12,7 +12,7 @@
 	<key>LSMinimumSystemVersion</key><string>13.0</string>
 	<key>LSBackgroundOnly</key><true/>
 	<key>NSPrincipalClass</key><string>NSApplication</string>
-	<key>InputMethodConnectionName</key><string>BeKey_Connection</string>
+	<key>InputMethodConnectionName</key><string>vn.behemoth.inputmethod.BeKey_Connection</string>
 	<key>InputMethodServerControllerClass</key><string>InputController</string>
 	<key>TISInputSourceID</key><string>vn.behemoth.inputmethod.BeKey</string>
 	<key>TISIntendedLanguage</key><string>vi</string>
