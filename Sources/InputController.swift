@@ -32,11 +32,17 @@ final class InputController: IMKInputController {
         "com.stablyai.orca", "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92", "com.cmuxterm.app",
         "co.zeit.hyper", "org.tabby",
     ]
-    /// Apps seen with a field that ignores the caret (Slack, Orca…): start their words as
+    /// Browsers host every kind of field (web terminals, Docs canvases, plain inputs): one odd field must
+    /// not underline all of them, so they fall back to marked text per word and are never remembered.
+    private static let browsers: Set<String> = [
+        "com.google.Chrome", "com.apple.Safari", "company.thebrowser.Browser", "com.microsoft.edgemac",
+        "org.mozilla.firefox", "com.brave.Browser",
+    ]
+    /// Apps seen with a field that ignores the caret (Slack…): start their words as
     /// marked text so the first letter is never sent early ("dd" -> "dđ"). Worst case is an underline.
-    /// Drops embedded-terminal apps that v1.0.2 remembered by mistake (they made every Orca field underlined).
+    /// Drops multi-field apps remembered by mistake (v1.0.2 Orca, Chrome): they made every field underlined.
     private static var noCaretApps = Set(UserDefaults.standard.stringArray(forKey: "noCaretApps") ?? [])
-        .subtracting(embeddedTerminalApps)
+        .subtracting(embeddedTerminalApps).subtracting(browsers)
 
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
         guard event.type == .keyDown, let client = sender as? IMKTextInput else { return false }
@@ -54,8 +60,10 @@ final class InputController: IMKInputController {
                 if Self.embeddedTerminalApps.contains(app) {
                     erase = true   // a terminal pane: DEL + retype for the rest of this word
                 } else {           // e.g. Slack: no DEL there; marked text, remembered so words start marked
-                    Self.noCaretApps.insert(app)
-                    UserDefaults.standard.set(Array(Self.noCaretApps), forKey: "noCaretApps")
+                    if !Self.browsers.contains(app) {
+                        Self.noCaretApps.insert(app)
+                        UserDefaults.standard.set(Array(Self.noCaretApps), forKey: "noCaretApps")
+                    }
                     marked = true
                     committed = shown
                 }
