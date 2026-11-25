@@ -19,13 +19,13 @@ codesign --force --sign - "$APP"
 echo "built $APP"
 
 if [ "$1" = install ]; then
-  DEST="$HOME/Library/Input Methods/BeKey.app"
+  DEST="${HOME:?}/Library/Input Methods/BeKey.app"
   pkill -x BeKey || true          # stop the old binary; relaunched below
   rm -rf "$DEST"
   cp -R "$APP" "$DEST"
   # Same bundle id in build/ confuses Input Sources: drop the build copy once installed.
   LSREG=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
-  rm -rf "$APP"; "$LSREG" -u "$APP" 2>/dev/null || true
+  "$LSREG" -u "$APP" 2>/dev/null || true; rm -rf "$APP"
   "$DEST/Contents/MacOS/BeKey" --install || true
-  open "$DEST"                    # macOS does not always relaunch a killed input method by itself
+  open "$DEST" || true            # macOS does not always relaunch a killed input method by itself
 fi
