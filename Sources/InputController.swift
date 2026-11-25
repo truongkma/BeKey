@@ -112,7 +112,14 @@ final class InputController: IMKInputController {
     private func show(_ client: IMKTextInput) {
         if marked {
             let text = pending()
-            client.setMarkedText(text, selectionRange: NSRange(location: text.utf16.count, length: 0),
+            // Explicit style: a plain string gets IMK's default "selected" look, which apps (Chrome)
+            // draw as a highlighted block. A faint thin underline is the least visible marked text.
+            let faint: [NSAttributedString.Key: Any] = [
+                .underlineStyle: NSUnderlineStyle.single.rawValue,
+                .underlineColor: NSColor.textColor.withAlphaComponent(0.15),
+            ]
+            client.setMarkedText(NSAttributedString(string: text, attributes: faint),
+                                 selectionRange: NSRange(location: text.utf16.count, length: 0),
                                  replacementRange: notFound)
             return
         }
