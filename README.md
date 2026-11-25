@@ -44,7 +44,7 @@ macOS không cho ứng dụng tự bật bộ gõ, nên bạn thêm BeKey một 
 1. Mở **System Settings → Keyboard → Input Sources → Edit…**
 2. Bấm **+** → chọn **Vietnamese** → chọn **BeKey** → **Add**.
 3. Nếu chưa thấy BeKey trong danh sách: **đăng xuất rồi đăng nhập lại** một lần, sau đó làm lại bước 2.
-4. Nếu bạn đang dùng bộ gõ tiếng Việt khác (OpenKey, EVKey, Unikey…), hãy tắt nó và bỏ chế độ tự chạy khi đăng nhập, để hai bộ gõ không cùng xử lý một phím.
+4. Nếu bạn đang dùng bộ gõ tiếng Việt khác (OpenKey, EVKey, Unikey…), hãy tắt nó và bỏ chế độ tự chạy khi đăng nhập, để hai bộ gõ không cùng xử lý một phím. Nên xoá cả bộ **Vietnamese – Telex/Simple Telex** có sẵn của macOS khỏi Input Sources: bộ này có gạch chân khi gõ và dễ bị chọn nhầm khi bấm `Ctrl + Space`.
 
 ## Sử dụng
 
@@ -87,6 +87,7 @@ Sau khi gỡ, xoá BeKey khỏi **Input Sources**.
 | Không thấy biểu tượng **V** trên thanh menu (thường sau khi cài lại) | Trong **Input Sources**, xoá BeKey (**−**) rồi thêm lại (**+**) |
 | Đã chọn BeKey nhưng gõ không ra dấu | Chạy `open ~/Library/Input\ Methods/BeKey.app`. Nếu vẫn không được ở một ứng dụng đã mở từ trước, thoát hẳn ứng dụng đó (⌘Q) rồi mở lại |
 | Có ký tự lạ hoặc chữ bị lặp | Kiểm tra xem còn bộ gõ tiếng Việt nào khác đang chạy không và tắt nó |
+| Thỉnh thoảng có gạch chân | Nhìn biểu tượng trên thanh menu: nếu không phải **V** thì bạn đang dùng bộ Telex của macOS; xoá nó khỏi Input Sources |
 
 ## Phát triển
 
