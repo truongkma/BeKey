@@ -116,7 +116,8 @@ final class InputController: IMKInputController {
             // draw as a highlighted block. A faint thin underline is the least visible marked text.
             let faint: [NSAttributedString.Key: Any] = [
                 .underlineStyle: NSUnderlineStyle.single.rawValue,
-                .underlineColor: NSColor.textColor.withAlphaComponent(0.15),
+                // A fixed sRGB grey: Chromium apps (Slack) mis-convert dynamic system colours (drawn green).
+                .underlineColor: NSColor(srgbRed: 0.5, green: 0.5, blue: 0.5, alpha: 0.4),
             ]
             client.setMarkedText(NSAttributedString(string: text, attributes: faint),
                                  selectionRange: NSRange(location: text.utf16.count, length: 0),

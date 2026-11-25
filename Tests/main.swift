@@ -13,7 +13,7 @@ for (i, o) in [
     ("hoaf", "hoà"), ("khoer", "khoẻ"), ("thuys", "thuý"), ("toans", "toán"), ("quas", "quá"),
     ("giaf", "già"), ("gif", "gì"), ("khoais", "khoái"), ("tw", "tư"), ("aw", "ă"), ("muaf", "mùa"),
     ("Vieejt", "Việt"), ("DDaay", "Đây"), ("ass", "as"), ("tesst", "test"), ("Tesst", "Test"), ("classs", "class"), ("aaa", "aa"), ("ddd", "dd"),
-    ("telex", "telex"), ("thuowr", "thuở"), ("khoeo", "khoeo"), ("hoawcj", "hoặc"), ("giuwowngf", "giường"), ("quoocs", "quốc"),
+    ("telex", "telex"), ("thuowr", "thuở"), ("khoeo", "khoeo"), ("ddaya", "đây"), ("daua", "dâu"), ("keue", "kêu"), ("toio", "tôi"), ("hoaia", "hoaia"), ("hoawcj", "hoặc"), ("giuwowngf", "giường"), ("quoocs", "quốc"),
     ("hoafz", "hoa"), ("hoaz", "hoaz"), ("html", "html"), ("class", "clas"), ("nexxt", "next"), ("cars", "cá"),
 ] { check(telex, i, o) }
 

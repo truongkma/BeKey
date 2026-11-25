@@ -50,8 +50,12 @@ struct Engine {
         if let t = tones[c] { return setTone(t, w, &tone) }
         switch (method, c) {
         case (.telex, "a"), (.telex, "e"), (.telex, "o"):
-            // only the last vowel of the word: "khoeo" stays "khoeo"
-            guard let i = w.lastIndex(where: { vowels.contains($0.ch) }), w[i].ch == c else { return false }
+            // The last vowel, or one followed by a vowel that makes a real rhyme ("ddaya" -> "đây",
+            // âu/êu/ôi); never across other vowels: "khoeo" stays "khoeo", "hoaia" is no "hoâi".
+            guard let i = w.lastIndex(where: { $0.ch == c }) else { return false }
+            let after = w[(i + 1)...].filter { vowels.contains($0.ch) }.map(\.ch)
+            guard after.isEmpty || (after.count == 1 && ["a": "uy", "e": "u", "o": "i"][c]!.contains(after[0]))
+            else { return false }
             return toggle(&w, .circ) { $0 == c }
         case (.vni, "6"):
             return toggle(&w, .circ) { "aeo".contains($0) }
