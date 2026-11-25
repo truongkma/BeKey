@@ -32,17 +32,9 @@ final class InputController: IMKInputController {
         "com.stablyai.orca", "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92", "com.cmuxterm.app",
         "co.zeit.hyper", "org.tabby",
     ]
-    /// Browsers host every kind of field (web terminals, Docs canvases, plain inputs): one odd field must
-    /// not underline all of them, so they fall back to marked text per word and are never remembered.
-    private static let browsers: Set<String> = [
-        "com.google.Chrome", "com.apple.Safari", "company.thebrowser.Browser", "com.microsoft.edgemac",
-        "org.mozilla.firefox", "com.brave.Browser",
-    ]
-    /// Apps seen with a field that ignores the caret (Slack…): start their words as
-    /// marked text so the first letter is never sent early ("dd" -> "dđ"). Worst case is an underline.
-    /// Drops multi-field apps remembered by mistake (v1.0.2 Orca, Chrome): they made every field underlined.
-    private static var noCaretApps = Set(UserDefaults.standard.stringArray(forKey: "noCaretApps") ?? [])
-        .subtracting(embeddedTerminalApps).subtracting(browsers)
+    /// Fields seen ignoring the caret (Slack search, a web terminal…), by IMK client id, this session only:
+    /// their words start as marked text. Remembering whole apps underlined every field of Chrome/Slack.
+    private static var oddClients = Set<String>()
 
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
         guard event.type == .keyDown, let client = sender as? IMKTextInput else { return false }
@@ -59,11 +51,8 @@ final class InputController: IMKInputController {
                 let app = client.bundleIdentifier() ?? ""
                 if Self.embeddedTerminalApps.contains(app) {
                     erase = true   // a terminal pane: DEL + retype for the rest of this word
-                } else {           // e.g. Slack: no DEL there; marked text, remembered so words start marked
-                    if !Self.browsers.contains(app) {
-                        Self.noCaretApps.insert(app)
-                        UserDefaults.standard.set(Array(Self.noCaretApps), forKey: "noCaretApps")
-                    }
+                } else {           // no DEL there: marked text, and this field's next words start marked
+                    Self.oddClients.insert(client.uniqueClientIdentifierString() ?? "")
                     marked = true
                     committed = shown
                 }
@@ -90,7 +79,7 @@ final class InputController: IMKInputController {
                 let noCaret = client.selectedRange().location == NSNotFound
                 // A caret-less field inside an app with embedded terminals is a terminal (cmux's Ghostty view).
                 erase = Self.terminals.contains(app) || (noCaret && Self.embeddedTerminalApps.contains(app))
-                marked = !erase && (Self.noCaretApps.contains(app) || noCaret)
+                marked = !erase && (noCaret || Self.oddClients.contains(client.uniqueClientIdentifierString() ?? ""))
             }
             keys.append(ch)
             show(client)
@@ -112,15 +101,7 @@ final class InputController: IMKInputController {
     private func show(_ client: IMKTextInput) {
         if marked {
             let text = pending()
-            // Explicit style: a plain string gets IMK's default "selected" look, which apps (Chrome)
-            // draw as a highlighted block. A faint thin underline is the least visible marked text.
-            let faint: [NSAttributedString.Key: Any] = [
-                .underlineStyle: NSUnderlineStyle.single.rawValue,
-                // Fixed sRGB, fully transparent: invisible where alpha is honoured, plain grey where it is
-                // dropped. Dynamic system colours get mis-converted by Chromium apps (Slack drew them green).
-                .underlineColor: NSColor(srgbRed: 0.5, green: 0.5, blue: 0.5, alpha: 0),
-            ]
-            client.setMarkedText(NSAttributedString(string: text, attributes: faint),
+            client.setMarkedText(text,
                                  selectionRange: NSRange(location: text.utf16.count, length: 0),
                                  replacementRange: notFound)
             return

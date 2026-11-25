@@ -21,6 +21,7 @@ if CommandLine.arguments.contains("--install") {
     exit(sources.isEmpty ? 1 : 0)
 }
 
+UserDefaults.standard.removeObject(forKey: "noCaretApps")   // per-app memory of v1.0.2–1.0.6
 let server = IMKServer(name: bundle.infoDictionary!["InputMethodConnectionName"] as? String,
                        bundleIdentifier: bundle.bundleIdentifier)
 _ = server
