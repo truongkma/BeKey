@@ -79,8 +79,10 @@ final class InputController: IMKInputController {
             }
             if keys.isEmpty {
                 let app = client.bundleIdentifier() ?? ""
-                erase = Self.terminals.contains(app)
-                marked = !erase && (Self.noCaretApps.contains(app) || client.selectedRange().location == NSNotFound)
+                let noCaret = client.selectedRange().location == NSNotFound
+                // A caret-less field inside an app with embedded terminals is a terminal (cmux's Ghostty view).
+                erase = Self.terminals.contains(app) || (noCaret && Self.embeddedTerminalApps.contains(app))
+                marked = !erase && (Self.noCaretApps.contains(app) || noCaret)
             }
             keys.append(ch)
             show(client)
