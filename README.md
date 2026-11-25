@@ -97,7 +97,7 @@ Sau khi gỡ, xoá BeKey khỏi **Input Sources**.
 ./build.sh install   # build và cài vào ~/Library/Input Methods
 ```
 
-`./build.sh` luôn chạy test engine trước khi build: các ca viết tay và bài kiểm tra vòng lặp cho toàn bộ 6.602 âm tiết trong `Tests/syllables.txt` (lấy từ từ điển hunspell tiếng Việt của LibreOffice), gõ theo nhiều cách bằng Telex và VNI.
+`./build.sh` luôn chạy test engine trước khi build: các ca viết tay và bài kiểm tra vòng lặp cho toàn bộ 6.602 âm tiết trong `Tests/syllables.txt` (lấy từ từ điển hunspell tiếng Việt của LibreOffice), gõ theo nhiều cách bằng Telex và VNI. Ngoài ra có bài kiểm tra `InputController` với một ô nhập giả báo vị trí con trỏ trễ (như Chrome, Slack khi gõ nhanh).
 
 | File | Vai trò |
 |---|---|

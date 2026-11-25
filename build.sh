@@ -7,6 +7,8 @@ mkdir -p build
 
 swiftc -swift-version 5 Sources/Engine.swift Tests/main.swift -o build/enginetest
 ./build/enginetest
+swiftc -swift-version 5 Sources/Engine.swift Sources/InputController.swift Tests/controller/main.swift -o build/controllertest
+./build/controllertest | tail -1
 
 APP=build/BeKey.app
 rm -rf "$APP"
