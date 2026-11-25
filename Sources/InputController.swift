@@ -16,11 +16,12 @@ final class InputController: IMKInputController {
     private var shown = ""          // what that word currently looks like on screen
     private var caret = NSNotFound  // where the caret must be if the user hasn't moved it
     private var before = NSNotFound // where the app reported the caret before our last insert
-    private var marked = false      // fallback for apps that can't report the caret: use marked text
-    private var committed = ""      // start of the word already sent before we found the app can't track its caret
+    private var marked = false      // fallback when the caret is unknown: use marked text
+    private var committed = ""      // start of the word already sent before switching to marked text
+    private var erase = false       // app can't replace text (terminal): fix the word with DEL + retype
 
-    /// Apps seen to misreport the caret (xterm.js terminals in Electron apps…): always use marked text there.
-    private static var markedApps = Set(UserDefaults.standard.stringArray(forKey: "markedApps") ?? [])
+    /// Apps whose caret never moves after an insert (xterm.js terminals: Orca, cmux, VS Code…).
+    private static var noCaretApps = Set(UserDefaults.standard.stringArray(forKey: "noCaretApps") ?? [])
 
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
         guard event.type == .keyDown, let client = sender as? IMKTextInput else { return false }
@@ -30,15 +31,13 @@ final class InputController: IMKInputController {
             commit(client)
             return false
         }
-        if !keys.isEmpty, !marked {
+        if !keys.isEmpty, !marked, !erase {
             let location = client.selectedRange().location
             if location == before, location != caret {
-                // Caret never moved after our insert: the app (xterm.js terminal…) can't take
-                // replacements. Remember it and finish this word as marked text.
-                Self.markedApps.insert(client.bundleIdentifier() ?? "")
-                UserDefaults.standard.set(Array(Self.markedApps), forKey: "markedApps")
-                marked = true
-                committed = shown
+                // Caret never moved after our insert: a terminal that ignores replacementRange.
+                Self.noCaretApps.insert(client.bundleIdentifier() ?? "")
+                UserDefaults.standard.set(Array(Self.noCaretApps), forKey: "noCaretApps")
+                erase = true
             } else if location != caret {
                 reset()   // user clicked / moved the caret: start a fresh word
             }
@@ -53,8 +52,8 @@ final class InputController: IMKInputController {
         if let ch = event.characters?.first, ch.isASCII,
            ch.isLetter || (ch.isNumber && !keys.isEmpty && Settings.method == .vni) {
             if keys.isEmpty {
-                marked = client.selectedRange().location == NSNotFound
-                    || Self.markedApps.contains(client.bundleIdentifier() ?? "")
+                erase = Self.noCaretApps.contains(client.bundleIdentifier() ?? "")
+                marked = !erase && client.selectedRange().location == NSNotFound
             }
             keys.append(ch)
             show(client)
@@ -87,6 +86,13 @@ final class InputController: IMKInputController {
         while common < old.count, common < new.count, old[common] == new[common] { common += 1 }
         let oldTail = old.count - common
         let newTail = String(utf16CodeUnits: Array(new[common...]), count: new.count - common)
+        if erase {
+            // DEL = Backspace for a terminal; sent with the new text in ONE insert, so no race with keys.
+            client.insertText(String(repeating: "\u{7f}", count: oldTail) + newTail, replacementRange: notFound)
+            shown = text
+            if keys.isEmpty { reset() }
+            return
+        }
         before = client.selectedRange().location
         guard before != NSNotFound, before >= oldTail else {   // caret lost mid-word: avoid overflow, go marked
             marked = true
@@ -121,6 +127,7 @@ final class InputController: IMKInputController {
         before = NSNotFound
         marked = false
         committed = ""
+        erase = false
     }
 
     // MARK: input-menu (the "V" icon in the menu bar)
