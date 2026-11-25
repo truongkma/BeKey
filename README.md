@@ -104,3 +104,7 @@ Ví dụ: `Vieejt Nam` / `Vie65t Nam` → **Việt Nam**; `nguwowif` / `ngu7o72i
 | `Sources/main.swift` | Khởi động bộ gõ, lệnh `--install` |
 | `Tests/main.swift` | Test engine |
 | `tools/icon.swift` | Tạo biểu tượng **V** trên thanh menu |
+
+## Giấy phép
+
+[MIT](LICENSE)
