@@ -59,6 +59,11 @@ final class InputController: IMKInputController {
         }
         if let ch = event.characters?.first, ch.isASCII,
            ch.isLetter || (ch.isNumber && !keys.isEmpty && Settings.method == .vni) {
+            // No syllable is this long (held key, gibberish): stop composing so work and memory stay bounded.
+            if keys.count >= 24 {
+                commit(client)
+                return false
+            }
             if keys.isEmpty {
                 marked = client.selectedRange().location == NSNotFound
             }
@@ -101,7 +106,8 @@ final class InputController: IMKInputController {
             return
         }
         before = client.selectedRange().location
-        guard before != NSNotFound, before >= oldTail else {   // caret lost mid-word: avoid overflow, go marked
+        // Client-reported caret: reject unknown/absurd values instead of letting the arithmetic below trap.
+        guard before != NSNotFound, before >= oldTail, before <= Int.max - newTail.utf16.count else {
             marked = true
             committed = shown
             return show(client)
