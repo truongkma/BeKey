@@ -85,7 +85,7 @@ Ví dụ: `Vieejt Nam` / `Vie65t Nam` → **Việt Nam**; `nguwowif` / `ngu7o72i
 | Hiện tượng | Cách xử lý |
 |---|---|
 | Không thấy BeKey trong danh sách Vietnamese | Đăng xuất rồi đăng nhập lại, sau đó thêm lại |
-| Đã chọn BeKey nhưng gõ không ra dấu | Kiểm tra biểu tượng **V** trên thanh menu; chạy `pkill -x BeKey`, macOS sẽ tự khởi động lại bộ gõ |
+| Đã chọn BeKey nhưng gõ không ra dấu | Bộ gõ có thể không chạy: `open ~/Library/Input\ Methods/BeKey.app` (hoặc chạy lại `./build.sh install`) |
 | App nào đó hiện gạch chân khi gõ | App đó không báo được vị trí con trỏ nên BeKey dùng chế độ gõ có gạch chân cho an toàn. Gõ vẫn đúng |
 
 ## Phát triển
