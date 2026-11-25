@@ -23,6 +23,7 @@ Yêu cầu macOS 13 trở lên.
 
 ```sh
 brew tap truongkma/bekey https://github.com/truongkma/BeKey
+brew trust truongkma/bekey      # Homebrew 7+ yêu cầu tin cậy tap bên thứ ba
 brew install --cask bekey
 ```
 
