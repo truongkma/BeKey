@@ -147,18 +147,7 @@ final class InputController: IMKInputController {
             item.state = Settings.method == method ? .on : .off
             menu.addItem(item)
         }
-        menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Khởi động lại BeKey", action: #selector(restart), keyEquivalent: ""))
         return menu
-    }
-
-    /// Escape hatch if typing ever stops: relaunch a fresh process; apps reconnect on their next key.
-    @objc private func restart(_ sender: Any?) {
-        let relaunch = Process()
-        relaunch.executableURL = URL(fileURLWithPath: "/bin/sh")
-        relaunch.arguments = ["-c", "sleep 0.5; /usr/bin/open \"$0\"", Bundle.main.bundlePath]
-        try? relaunch.run()
-        exit(0)
     }
 
     @objc private func useTelex(_ sender: Any?) { Settings.method = .telex }
