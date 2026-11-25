@@ -20,6 +20,13 @@ final class InputController: IMKInputController {
     private var committed = ""      // start of the word already sent before switching to marked text
     private var erase = false       // app can't replace text (terminal): fix the word with DEL + retype
 
+    /// Terminals: DEL is Backspace there, so DEL + retype fixes a word without underline.
+    /// Anywhere else DEL would show up as a junk character, so other caret-less fields get marked text.
+    private static let terminals: Set<String> = [
+        "com.stablyai.orca", "com.cmuxterm.app", "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92",
+        "com.googlecode.iterm2", "dev.warp.Warp-Stable", "com.mitchellh.ghostty", "co.zeit.hyper", "org.tabby",
+    ]
+
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
         guard event.type == .keyDown, let client = sender as? IMKTextInput else { return false }
 
@@ -31,9 +38,14 @@ final class InputController: IMKInputController {
         if !keys.isEmpty, !marked, !erase {
             let location = client.selectedRange().location
             if location == before, location != caret {
-                // Caret never moved after our insert: a terminal that ignores replacementRange.
-                // Decided per word, never remembered per app: one app can have both (Finder rename vs type-select).
-                erase = true
+                // Caret never moved after our insert: this field ignores replacementRange.
+                // Decided per word (one app can mix fields); DEL only where it is known to mean Backspace.
+                if Self.terminals.contains(client.bundleIdentifier() ?? "") {
+                    erase = true
+                } else {
+                    marked = true
+                    committed = shown
+                }
             } else if location != caret {
                 reset()   // user clicked / moved the caret: start a fresh word
             }
