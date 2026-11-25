@@ -25,8 +25,13 @@ final class InputController: IMKInputController {
     /// Never list apps that also have ordinary text fields (Orca Bots drops DEL -> "toôi"): those are
     /// handled per field by the caret check, falling back to marked text.
     private static let terminals: Set<String> = ["com.googlecode.iterm2", "com.mitchellh.ghostty", "dev.warp.Warp-Stable"]
-    /// Editors mixing text fields and terminals (DEL would be junk in the editor): always marked text.
-    private static let markedApps: Set<String> = ["com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92"]
+    /// Apps that embed xterm.js terminals next to ordinary fields. A terminal field gives itself away when
+    /// the caret snaps back after an insert; only then, and only for that word, fix it with DEL + retype
+    /// (DEL even erases the first letter already sent). Never remembered per app: other fields stay normal.
+    private static let embeddedTerminalApps: Set<String> = [
+        "com.stablyai.orca", "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92", "com.cmuxterm.app",
+        "co.zeit.hyper", "org.tabby",
+    ]
     /// Apps seen with a field that ignores the caret (Slack, Orca…): start their words as
     /// marked text so the first letter is never sent early ("dd" -> "dđ"). Worst case is an underline.
     private static var noCaretApps = Set(UserDefaults.standard.stringArray(forKey: "noCaretApps") ?? [])
@@ -42,11 +47,16 @@ final class InputController: IMKInputController {
         if !keys.isEmpty, !marked, !erase {
             let location = client.selectedRange().location
             if location == before, location != caret {
-                // Caret never moved after our insert: this field ignores replacementRange (Slack…).
-                Self.noCaretApps.insert(client.bundleIdentifier() ?? "")
-                UserDefaults.standard.set(Array(Self.noCaretApps), forKey: "noCaretApps")   // remembered across logins
-                marked = true
-                committed = shown
+                // Caret never moved after our insert: this field ignores replacementRange.
+                let app = client.bundleIdentifier() ?? ""
+                if Self.embeddedTerminalApps.contains(app) {
+                    erase = true   // a terminal pane: DEL + retype for the rest of this word
+                } else {           // e.g. Slack: no DEL there; marked text, remembered so words start marked
+                    Self.noCaretApps.insert(app)
+                    UserDefaults.standard.set(Array(Self.noCaretApps), forKey: "noCaretApps")
+                    marked = true
+                    committed = shown
+                }
             } else if location != caret {
                 reset()   // user clicked / moved the caret: start a fresh word
             }
@@ -68,8 +78,7 @@ final class InputController: IMKInputController {
             if keys.isEmpty {
                 let app = client.bundleIdentifier() ?? ""
                 erase = Self.terminals.contains(app)
-                marked = !erase && (Self.markedApps.contains(app) || Self.noCaretApps.contains(app)
-                    || client.selectedRange().location == NSNotFound)
+                marked = !erase && (Self.noCaretApps.contains(app) || client.selectedRange().location == NSNotFound)
             }
             keys.append(ch)
             show(client)
