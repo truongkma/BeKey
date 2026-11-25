@@ -47,7 +47,6 @@ Lệnh trên sẽ chạy test, build `BeKey.app`, chép vào `~/Library/Input Me
 ```sh
 git pull && ./build.sh install
 ```
-Sau khi cập nhật, các app đang mở cần **thoát rồi mở lại** để nhận bản BeKey mới.
 
 ### Gỡ cài đặt
 ```sh
@@ -59,6 +58,7 @@ Sau đó xoá BeKey khỏi **Input Sources**.
 
 - **Bật/tắt tiếng Việt**: chuyển nguồn nhập bằng `Ctrl + Space` hoặc phím 🌐 (Globe), qua lại giữa BeKey và ABC.
 - **Chọn kiểu gõ**: bấm biểu tượng **V** trên thanh menu → **Telex** hoặc **VNI**. Lựa chọn được lưu lại.
+- **Khởi động lại bộ gõ**: menu **V** → **Khởi động lại BeKey**. Các app tự kết nối lại, không cần mở lại app.
 - **Gõ tắt hoặc phím chức năng** (`⌘`, `⌃`, `⌥`): BeKey nhường lại hoàn toàn cho app.
 
 ### Bảng gõ
@@ -86,7 +86,7 @@ Ví dụ: `Vieejt Nam` / `Vie65t Nam` → **Việt Nam**; `nguwowif` / `ngu7o72i
 | Hiện tượng | Cách xử lý |
 |---|---|
 | Không thấy BeKey trong danh sách Vietnamese | Đăng xuất rồi đăng nhập lại, sau đó thêm lại |
-| Đã chọn BeKey nhưng gõ không ra dấu (thường ngay sau khi cập nhật BeKey) | 1. Chạy `open ~/Library/Input\ Methods/BeKey.app`. 2. **Thoát hẳn (⌘Q) rồi mở lại** app đang gõ: app mở từ trước giữ kết nối cũ tới bộ gõ và không tự kết nối lại |
+| Đã chọn BeKey nhưng gõ không ra dấu | Menu **V** → **Khởi động lại BeKey**. Nếu menu không phản hồi: chạy `open ~/Library/Input\ Methods/BeKey.app` |
 | App nào đó hiện gạch chân khi gõ | App đó không báo được vị trí con trỏ nên BeKey dùng chế độ gõ có gạch chân cho an toàn. Gõ vẫn đúng |
 
 ## Phát triển
