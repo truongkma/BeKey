@@ -17,12 +17,24 @@ BeKey là một input method chính thức của macOS (InputMethodKit), viết 
 
 ## Cài đặt
 
-Yêu cầu macOS 13 trở lên. BeKey chỉ được cài và cập nhật qua Homebrew.
+Yêu cầu macOS 13 trở lên.
+
+### Cách 1: Homebrew (khuyên dùng)
 
 ```sh
 brew tap truongkma/bekey https://github.com/truongkma/BeKey
 brew trust truongkma/bekey      # Homebrew 7+ yêu cầu tin cậy tap bên thứ ba
 brew install --cask bekey
+```
+
+### Cách 2: Build từ mã nguồn
+
+Cần Xcode hoặc Command Line Tools (`xcode-select --install`).
+
+```sh
+git clone https://github.com/truongkma/BeKey.git
+cd BeKey
+./build.sh install
 ```
 
 ### Thiết lập lần đầu
@@ -58,9 +70,14 @@ Ví dụ: `Vieejt Nam` / `Vie65t Nam` → **Việt Nam**; `nguwowif` → **ngư�
 
 ## Cập nhật và gỡ cài đặt
 
-- **Cập nhật:** `brew update && brew upgrade --cask bekey`. Bản mới có hiệu lực từ lần đăng nhập sau (BeKey đang chạy không bị tắt giữa chừng, để các ứng dụng không mất kết nối).
-- **Gỡ cài đặt:** `brew uninstall --cask bekey`, rồi xoá BeKey khỏi **Input Sources**.
-- Chỉ cài BeKey qua Homebrew. Đừng chép hoặc build đè `BeKey.app` vào `~/Library/Input Methods` bằng tay: macOS có thể mất dấu BeKey (vẫn hiện trong danh sách nhưng không chọn được).
+| | Homebrew | Từ mã nguồn |
+|---|---|---|
+| Cập nhật | `brew upgrade --cask bekey` | `git pull && ./build.sh install` |
+
+Bản cập nhật qua Homebrew có hiệu lực từ lần đăng nhập sau (BeKey đang chạy không bị tắt, để các ứng dụng không mất kết nối). Cập nhật từ mã nguồn khởi động lại BeKey ngay; nếu ứng dụng nào gõ không ra dấu, thoát hẳn (⌘Q) rồi mở lại.
+| Gỡ cài đặt | `brew uninstall --cask bekey` | `pkill -x BeKey; rm -rf ~/Library/Input\ Methods/BeKey.app` |
+
+Sau khi gỡ, xoá BeKey khỏi **Input Sources**.
 
 ## Xử lý sự cố
 
@@ -76,7 +93,8 @@ Ví dụ: `Vieejt Nam` / `Vie65t Nam` → **Việt Nam**; `nguwowif` → **ngư�
 ## Phát triển
 
 ```sh
-./build.sh   # chạy test và build vào build/BeKey.app (để đóng gói release)
+./build.sh           # chạy test và build vào build/BeKey.app
+./build.sh install   # build và cài vào ~/Library/Input Methods
 ```
 
 `./build.sh` luôn chạy test engine trước khi build: các ca viết tay và bài kiểm tra vòng lặp cho toàn bộ 6.602 âm tiết trong `Tests/syllables.txt` (lấy từ từ điển hunspell tiếng Việt của LibreOffice), gõ theo nhiều cách bằng Telex và VNI.
