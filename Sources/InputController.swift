@@ -20,9 +20,6 @@ final class InputController: IMKInputController {
     private var committed = ""      // start of the word already sent before switching to marked text
     private var erase = false       // app can't replace text (terminal): fix the word with DEL + retype
 
-    /// Apps whose caret never moves after an insert (xterm.js terminals: Orca, cmux, VS Code…).
-    private static var noCaretApps = Set(UserDefaults.standard.stringArray(forKey: "noCaretApps") ?? [])
-
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
         guard event.type == .keyDown, let client = sender as? IMKTextInput else { return false }
 
@@ -35,8 +32,7 @@ final class InputController: IMKInputController {
             let location = client.selectedRange().location
             if location == before, location != caret {
                 // Caret never moved after our insert: a terminal that ignores replacementRange.
-                Self.noCaretApps.insert(client.bundleIdentifier() ?? "")
-                UserDefaults.standard.set(Array(Self.noCaretApps), forKey: "noCaretApps")
+                // Decided per word, never remembered per app: one app can have both (Finder rename vs type-select).
                 erase = true
             } else if location != caret {
                 reset()   // user clicked / moved the caret: start a fresh word
@@ -52,8 +48,7 @@ final class InputController: IMKInputController {
         if let ch = event.characters?.first, ch.isASCII,
            ch.isLetter || (ch.isNumber && !keys.isEmpty && Settings.method == .vni) {
             if keys.isEmpty {
-                erase = Self.noCaretApps.contains(client.bundleIdentifier() ?? "")
-                marked = !erase && client.selectedRange().location == NSNotFound
+                marked = client.selectedRange().location == NSNotFound
             }
             keys.append(ch)
             show(client)
