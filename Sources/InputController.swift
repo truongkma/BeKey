@@ -20,12 +20,14 @@ final class InputController: IMKInputController {
     private var committed = ""      // start of the word already sent before switching to marked text
     private var erase = false       // app can't replace text (terminal): fix the word with DEL + retype
 
-    /// Terminals: DEL is Backspace there, so DEL + retype fixes a word without underline.
-    /// Anywhere else DEL would show up as a junk character, so other caret-less fields get marked text.
+    /// Terminal emulators ignore replacementRange (iTerm2 even reports a correct caret, so it can't be
+    /// detected); DEL is Backspace there, so DEL + retype from the first key, without underline.
     private static let terminals: Set<String> = [
-        "com.stablyai.orca", "com.cmuxterm.app", "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92",
-        "com.googlecode.iterm2", "dev.warp.Warp-Stable", "com.mitchellh.ghostty", "co.zeit.hyper", "org.tabby",
+        "com.googlecode.iterm2", "com.stablyai.orca", "com.cmuxterm.app", "com.mitchellh.ghostty",
+        "dev.warp.Warp-Stable", "co.zeit.hyper", "org.tabby",
     ]
+    /// Editors mixing text fields and terminals (DEL would be junk in the editor): always marked text.
+    private static let markedApps: Set<String> = ["com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92"]
 
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
         guard event.type == .keyDown, let client = sender as? IMKTextInput else { return false }
@@ -38,14 +40,10 @@ final class InputController: IMKInputController {
         if !keys.isEmpty, !marked, !erase {
             let location = client.selectedRange().location
             if location == before, location != caret {
-                // Caret never moved after our insert: this field ignores replacementRange.
-                // Decided per word (one app can mix fields); DEL only where it is known to mean Backspace.
-                if Self.terminals.contains(client.bundleIdentifier() ?? "") {
-                    erase = true
-                } else {
-                    marked = true
-                    committed = shown
-                }
+                // Caret never moved after our insert: this field ignores replacementRange (Slack…).
+                // Decided per word, since one app can mix field types.
+                marked = true
+                committed = shown
             } else if location != caret {
                 reset()   // user clicked / moved the caret: start a fresh word
             }
@@ -65,7 +63,9 @@ final class InputController: IMKInputController {
                 return false
             }
             if keys.isEmpty {
-                marked = client.selectedRange().location == NSNotFound
+                let app = client.bundleIdentifier() ?? ""
+                erase = Self.terminals.contains(app)
+                marked = !erase && (Self.markedApps.contains(app) || client.selectedRange().location == NSNotFound)
             }
             keys.append(ch)
             show(client)
