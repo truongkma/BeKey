@@ -23,8 +23,8 @@ if [ "$1" = install ]; then
   pkill -x BeKey || true          # macOS relaunches the new binary on next keystroke
   rm -rf "$DEST"
   cp -R "$APP" "$DEST"
-  # Same bundle id in build/ confuses Input Sources: keep only the installed copy registered.
+  # Same bundle id in build/ confuses Input Sources: drop the build copy once installed.
   LSREG=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
-  "$LSREG" -u "$APP" 2>/dev/null || true
+  rm -rf "$APP"; "$LSREG" -u "$APP" 2>/dev/null || true
   "$DEST/Contents/MacOS/BeKey" --install
 fi
