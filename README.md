@@ -109,7 +109,7 @@ Sau khi gỡ, xoá BeKey khỏi **Input Sources**.
 ### Phát hành bản mới
 
 1. Tăng `CFBundleShortVersionString` trong `Info.plist`.
-2. `./build.sh`, rồi đóng gói: `ditto -c -k --keepParent build/BeKey.app BeKey-<version>.zip`.
+2. `./build.sh`, rồi đóng gói: `ditto -c -k --keepParent build/BeKey.app BeKey-<version>.zip && rm -rf build/BeKey.app` (đừng để lại bản sao `BeKey.app` thứ hai trên máy: macOS sẽ loại BeKey khỏi danh sách bộ gõ đã bật).
 3. Tạo GitHub Release `v<version>` kèm file zip.
 4. Cập nhật `version` và `sha256` (`shasum -a 256 BeKey-<version>.zip`) trong `Casks/bekey.rb`, commit và push.
 

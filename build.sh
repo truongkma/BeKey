@@ -16,6 +16,10 @@ cp Info.plist "$APP/Contents/"
 [ -f build/icon.tiff ] || swift -swift-version 5 tools/icon.swift build/icon.tiff
 cp build/icon.tiff "$APP/Contents/Resources/"
 codesign --force --sign - "$APP"
+# A second registered copy with the same bundle id makes macOS drop BeKey from the enabled
+# input sources ("inactive", switches straight back to ABC): never leave the build copy registered.
+LSREG=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+"$LSREG" -u "$APP" 2>/dev/null || true
 echo "built $APP"
 
 if [ "$1" = install ]; then
@@ -24,9 +28,7 @@ if [ "$1" = install ]; then
   # Overwrite in place: deleting the bundle first makes Input Sources lose track of BeKey
   # (it stays listed but can no longer be selected until removed and re-added).
   mkdir -p "$DEST" && ditto "$APP" "$DEST"
-  # Same bundle id in build/ confuses Input Sources: drop the build copy once installed.
-  LSREG=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
-  "$LSREG" -u "$APP" 2>/dev/null || true; rm -rf "$APP"
+  rm -rf "$APP"                   # same reason: no second copy of BeKey on disk
   "$DEST/Contents/MacOS/BeKey" --install || true
   open "$DEST" || true            # macOS does not always relaunch a killed input method by itself
 fi
