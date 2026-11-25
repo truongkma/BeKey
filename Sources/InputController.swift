@@ -34,7 +34,9 @@ final class InputController: IMKInputController {
     ]
     /// Apps seen with a field that ignores the caret (Slack, Orca…): start their words as
     /// marked text so the first letter is never sent early ("dd" -> "dđ"). Worst case is an underline.
+    /// Drops embedded-terminal apps that v1.0.2 remembered by mistake (they made every Orca field underlined).
     private static var noCaretApps = Set(UserDefaults.standard.stringArray(forKey: "noCaretApps") ?? [])
+        .subtracting(embeddedTerminalApps)
 
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
         guard event.type == .keyDown, let client = sender as? IMKTextInput else { return false }
