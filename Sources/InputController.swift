@@ -20,8 +20,7 @@ final class InputController: IMKInputController {
     private var fast = false        // this key came right after the previous one
     private var lastKey: TimeInterval = 0
     private var guessed = false     // the word's start came from the app's (maybe late) report
-    private var start = NSNotFound  // caret the app reported when the word began
-    private var sent = ""           // everything we inserted for this word, as an append-only terminal holds it
+    private var sent = ""           // what a terminal holds of this word: it drops inserts that replace text
     private var marked = false      // fallback when the caret is unknown: use marked text
     private var committed = ""      // start of the word already sent before switching to marked text
     private var erase = false       // app can't replace text (terminal): fix the word with DEL + retype
@@ -81,8 +80,7 @@ final class InputController: IMKInputController {
             }
             if keys.isEmpty {
                 let app = client.bundleIdentifier() ?? ""
-                start = client.selectedRange().location
-                let noCaret = start == NSNotFound
+                let noCaret = client.selectedRange().location == NSNotFound
                 // A caret-less field inside an app with embedded terminals is a terminal (cmux's Ghostty view).
                 erase = Self.terminals.contains(app) || (noCaret && Self.embeddedTerminalApps.contains(app))
                 marked = !erase && noCaret
@@ -142,7 +140,7 @@ final class InputController: IMKInputController {
         let location = before - oldTail
         client.insertText(newTail, replacementRange: oldTail == 0 ? notFound : NSRange(location: location, length: oldTail))
         shown = text
-        sent += newTail
+        if oldTail == 0 { sent += newTail }
         caret = location + newTail.utf16.count
         known = caret
         if keys.isEmpty { reset() }
@@ -155,10 +153,11 @@ final class InputController: IMKInputController {
         return text.hasPrefix(committed) ? String(text.dropFirst(committed.count)) : text
     }
 
-    /// xterm.js ignores replacementRange and its caret report never moves. A late report (Electron chat boxes
-    /// when typing fast) also looks unmoved for a key or two, so only call it a terminal once we sent 3+ chars.
+    /// xterm.js reports a caret that doesn't follow the text (Orca: about 1 while the line grows) and drops
+    /// inserts that replace text. A late report (typing fast) is one insert behind, i.e. at `before`, never before it.
+    /// shortcut: a report 2+ inserts late in an ordinary field of these apps looks like a terminal; not seen so far.
     private func stuck(_ client: IMKTextInput, at location: Int) -> Bool {
-        location == start && location != caret && sent.utf16.count >= 3
+        location != NSNotFound && before != NSNotFound && location < before
             && Self.embeddedTerminalApps.contains(client.bundleIdentifier() ?? "")
     }
 
@@ -188,7 +187,6 @@ final class InputController: IMKInputController {
         marked = false
         committed = ""
         erase = false
-        start = NSNotFound
         sent = ""
     }
 

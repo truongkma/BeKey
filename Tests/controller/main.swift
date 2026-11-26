@@ -7,10 +7,11 @@ final class Mock: NSObject, IMKTextInput {
     init(lag: Int, app: String = "com.google.Chrome") { self.lag = lag; self.app = app }
     func record() { history.append(pos) }
     func reported() -> Int { history[max(0, history.count - 1 - lag)] }
-    var xterm = false   // xterm.js: appends (ignores replacementRange), DEL = Backspace, caret report never moves
+    var xterm = false   // Orca's xterm.js: drops inserts that replace text, DEL = Backspace, caret report stays ~1
     func insertText(_ string: Any!, replacementRange r: NSRange) {
         let all = Array(((string as? NSAttributedString)?.string ?? string as! String).utf16)
         if xterm {
+            if r.location != NSNotFound { return }
             for u in all { if u == 0x7f { if !text.isEmpty { text.removeLast() } } else { text.append(u) } }
             return
         }
@@ -80,10 +81,12 @@ for lag in 0...2 {
     run("ddi <ddaay ", "điđây ", lag: lag)
     if lag == 0 { run("ddi\rddaay ", "đi\rđây ", lag: lag) }
     run("toi ddi. ddaay, ok ", "toi đi. đây, ok ", lag: lag)
-    run("bij thieeus daaus ", "bị thiếu dấu ", lag: lag, app: "com.stablyai.orca")   // Orca chat box, not its terminal
+    if lag < 2 { run("bij thieeus daaus ", "bị thiếu dấu ", lag: lag, app: "com.stablyai.orca") }   // Orca non-terminal field
 }
 run("ddi tooi ddaay nguwowif ", "đi tôi đây người ", lag: 0, app: "com.stablyai.orca", xterm: true)   // Orca terminal
 run("bij thieeus ", "bị thiếu ", lag: 0, app: "com.stablyai.orca", xterm: true)
+run("tet thuwr gox nhuwng khoong onr tooi ", "tet thử gõ nhưng không ỏn tôi ", lag: 0, app: "com.stablyai.orca", xterm: true)
+run("ddi ", "đi ", lag: 0, app: "com.stablyai.orca", xterm: true)
 do {   // realistic: right after Enter the first report is late once, the next key sees the truth
     let m = Mock(lag: 0); let ic = InputController(); clock += 5
     for c in "ddi" { _ = ic.handle(key(c), client: m) }
