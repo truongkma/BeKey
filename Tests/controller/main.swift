@@ -7,8 +7,14 @@ final class Mock: NSObject, IMKTextInput {
     init(lag: Int, app: String = "com.google.Chrome") { self.lag = lag; self.app = app }
     func record() { history.append(pos) }
     func reported() -> Int { history[max(0, history.count - 1 - lag)] }
+    var xterm = false   // xterm.js: appends (ignores replacementRange), DEL = Backspace, caret report never moves
     func insertText(_ string: Any!, replacementRange r: NSRange) {
-        let s = Array(((string as? NSAttributedString)?.string ?? string as! String).utf16)
+        let all = Array(((string as? NSAttributedString)?.string ?? string as! String).utf16)
+        if xterm {
+            for u in all { if u == 0x7f { if !text.isEmpty { text.removeLast() } } else { text.append(u) } }
+            return
+        }
+        let s = all.filter { $0 != 0x7f }   // ordinary fields drop DEL
         let range = r.location == NSNotFound ? NSRange(location: pos, length: 0) : r
         text.replaceSubrange(range.location..<range.location + range.length, with: s)
         pos = range.location + s.count; record()
@@ -17,6 +23,7 @@ final class Mock: NSObject, IMKTextInput {
     func backspaceByApp() { if pos > 0 { text.remove(at: pos - 1); pos -= 1; record() } }
     func setMarkedText(_ string: Any!, selectionRange: NSRange, replacementRange: NSRange) { fatalError("marked") }
     func selectedRange() -> NSRange {
+        if xterm { return NSRange(location: 1, length: 0) }
         if staleOnce { staleOnce = false; return NSRange(location: oncePos, length: 0) }
         return NSRange(location: reported(), length: 0)
     }
@@ -47,8 +54,8 @@ func key(_ c: Character, _ code: UInt16 = 0) -> NSEvent {
 }
 UserDefaults.standard.set("telex", forKey: "method")   // test process's own defaults domain
 var fails = 0
-func run(_ typed: String, _ want: String, lag: Int, prefix: String = "") {
-    let m = Mock(lag: lag); for c in prefix { m.typeByApp(String(c)) }
+func run(_ typed: String, _ want: String, lag: Int, prefix: String = "", app: String = "com.google.Chrome", xterm: Bool = false) {
+    let m = Mock(lag: lag, app: app); m.xterm = xterm; for c in prefix { m.typeByApp(String(c)) }
     for _ in 0..<lag { m.record() }   // a pause: the app's report catches up
     clock += 5
     let ic = InputController()
@@ -73,7 +80,10 @@ for lag in 0...2 {
     run("ddi <ddaay ", "điđây ", lag: lag)
     if lag == 0 { run("ddi\rddaay ", "đi\rđây ", lag: lag) }
     run("toi ddi. ddaay, ok ", "toi đi. đây, ok ", lag: lag)
+    run("bij thieeus daaus ", "bị thiếu dấu ", lag: lag, app: "com.stablyai.orca")   // Orca chat box, not its terminal
 }
+run("ddi tooi ddaay nguwowif ", "đi tôi đây người ", lag: 0, app: "com.stablyai.orca", xterm: true)   // Orca terminal
+run("bij thieeus ", "bị thiếu ", lag: 0, app: "com.stablyai.orca", xterm: true)
 do {   // realistic: right after Enter the first report is late once, the next key sees the truth
     let m = Mock(lag: 0); let ic = InputController(); clock += 5
     for c in "ddi" { _ = ic.handle(key(c), client: m) }

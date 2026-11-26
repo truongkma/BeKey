@@ -20,6 +20,8 @@ final class InputController: IMKInputController {
     private var fast = false        // this key came right after the previous one
     private var lastKey: TimeInterval = 0
     private var guessed = false     // the word's start came from the app's (maybe late) report
+    private var start = NSNotFound  // caret the app reported when the word began
+    private var sent = ""           // everything we inserted for this word, as an append-only terminal holds it
     private var marked = false      // fallback when the caret is unknown: use marked text
     private var committed = ""      // start of the word already sent before switching to marked text
     private var erase = false       // app can't replace text (terminal): fix the word with DEL + retype
@@ -51,9 +53,8 @@ final class InputController: IMKInputController {
         }
         if !keys.isEmpty, !marked, !erase {
             let location = client.selectedRange().location
-            if location == before, location != caret,
-               Self.embeddedTerminalApps.contains(client.bundleIdentifier() ?? "") {
-                erase = true   // xterm.js snapped the caret back: DEL + retype for the rest of this word
+            if stuck(client, at: location) {
+                becomeTerminal(client)
             } else if !fast, location != NSNotFound, location != caret {
                 reset()   // after a pause the app's caret is reliable: the user clicked / moved it
             } else if guessed, keys.count == 1, location != NSNotFound, location > caret {
@@ -80,7 +81,8 @@ final class InputController: IMKInputController {
             }
             if keys.isEmpty {
                 let app = client.bundleIdentifier() ?? ""
-                let noCaret = client.selectedRange().location == NSNotFound
+                start = client.selectedRange().location
+                let noCaret = start == NSNotFound
                 // A caret-less field inside an app with embedded terminals is a terminal (cmux's Ghostty view).
                 erase = Self.terminals.contains(app) || (noCaret && Self.embeddedTerminalApps.contains(app))
                 marked = !erase && noCaret
@@ -140,6 +142,7 @@ final class InputController: IMKInputController {
         let location = before - oldTail
         client.insertText(newTail, replacementRange: oldTail == 0 ? notFound : NSRange(location: location, length: oldTail))
         shown = text
+        sent += newTail
         caret = location + newTail.utf16.count
         known = caret
         if keys.isEmpty { reset() }
@@ -152,7 +155,25 @@ final class InputController: IMKInputController {
         return text.hasPrefix(committed) ? String(text.dropFirst(committed.count)) : text
     }
 
+    /// xterm.js ignores replacementRange and its caret report never moves. A late report (Electron chat boxes
+    /// when typing fast) also looks unmoved for a key or two, so only call it a terminal once we sent 3+ chars.
+    private func stuck(_ client: IMKTextInput, at location: Int) -> Bool {
+        location == start && location != caret && sent.utf16.count >= 3
+            && Self.embeddedTerminalApps.contains(client.bundleIdentifier() ?? "")
+    }
+
+    /// Switch this word to DEL + retype; the terminal holds everything we appended, so fix it from there.
+    private func becomeTerminal(_ client: IMKTextInput) {
+        erase = true
+        known = NSNotFound   // like the other DEL modes, don't track the caret
+        shown = sent
+        show(client)
+    }
+
     private func commit(_ client: IMKTextInput?) {
+        if let client, !keys.isEmpty, !marked, !erase, stuck(client, at: client.selectedRange().location) {
+            becomeTerminal(client)
+        }
         if marked, !keys.isEmpty, let client {
             client.insertText(pending(), replacementRange: notFound)
         }
@@ -167,6 +188,8 @@ final class InputController: IMKInputController {
         marked = false
         committed = ""
         erase = false
+        start = NSNotFound
+        sent = ""
     }
 
     // MARK: input-menu (the "V" icon in the menu bar)
