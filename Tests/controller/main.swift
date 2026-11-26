@@ -60,6 +60,7 @@ func key(_ c: Character, _ code: UInt16 = 0) -> NSEvent {
                      characters: String(c), charactersIgnoringModifiers: String(c), isARepeat: false, keyCode: code)!
 }
 UserDefaults.standard.set("telex", forKey: "method")   // test process's own defaults domain
+KeyTap.shared.enabled = false   // these tests cover the input-method paths; Composer is tested below
 var fails = 0
 func run(_ typed: String, _ want: String, lag: Int, prefix: String = "", app: String = "com.google.Chrome") {
     let m = Mock(lag: lag, app: app); for c in prefix { m.typeByApp(String(c)) }
@@ -102,5 +103,32 @@ do {   // realistic: right after Enter the first report is late once, the next k
     for c in "ddaay " { if !ic.handle(key(c), client: m) { m.typeByApp(String(c)) } }
     let ok = m.str == "đi\rđây "; if !ok { fails += 1 }; if !ok { print("FAIL late-once after Enter ->", m.str) }
 }
+// Composer (KeyTap): a screen that only gets keys, like a terminal. "<" = Backspace.
+// A real Backspace deletes one Character; injected text is appended where the caret is (the end).
+func composed(_ typed: String, _ method: TypingMethod = .telex) -> String {
+    var c = Composer(), screen: [Character] = []
+    for k in typed {
+        let a: Composer.Action
+        if k == "<" { a = c.backspace(method: method) }
+        else if k.isASCII, k.isLetter || (k.isNumber && !c.keys.isEmpty && method == .vni) { a = c.type(k, method: method) }
+        else { c.reset(); screen.append(k); continue }
+        switch a {
+        case .pass: if k == "<" { if !screen.isEmpty { screen.removeLast() } } else { screen.append(k) }
+        case let .replace(back, text): screen.removeLast(min(back, screen.count)); screen += Array(text)
+        }
+    }
+    return String(screen)
+}
+for (typed, want) in [
+    ("tooi ddang gox thuwr nhuwng khoong bij thieeus daaus", "tôi đang gõ thử nhưng không bị thiếu dấu"),
+    ("ddi ddaay Vieejt Nam nguwowif hoawcj tieengs, dduwowcj", "đi đây Việt Nam người hoặc tiếng, được"),
+    ("tesst classs html telex", "test class html telex"),
+    ("ddaaay<<y", "đây"), ("ddi<<<<tooi", "tôi"), ("tooi<<", "t"), ("ab<<<<cd", "cd"),
+    ("w ww uow uowi", "ư w uơ ươi"), ("moiw", "mơi"), ("dduwowcj", "được"),
+] where composed(typed) != want {
+    fails += 1; print("FAIL composer", typed, "->", composed(typed), "want", want)
+}
+if composed("Vie65t Nam d9i", .vni) != "Việt Nam đi" { fails += 1; print("FAIL composer vni ->", composed("Vie65t Nam d9i", .vni)) }
+
 print(fails == 0 ? "controller: all tests passed" : "controller: \(fails) FAILED")
 if fails > 0 { exit(1) }

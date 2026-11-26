@@ -22,6 +22,11 @@ if CommandLine.arguments.contains("--install") {
 }
 
 UserDefaults.standard.removeObject(forKey: "noCaretApps")   // per-app memory of v1.0.2–1.0.6
+// Typing in Orca, VS Code… needs Accessibility (KeyTap). Ask once; System Settings remembers the answer.
+if !AXIsProcessTrusted(), !UserDefaults.standard.bool(forKey: "askedAccessibility") {
+    UserDefaults.standard.set(true, forKey: "askedAccessibility")
+    _ = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
+}
 let server = IMKServer(name: bundle.infoDictionary!["InputMethodConnectionName"] as? String,
                        bundleIdentifier: bundle.bundleIdentifier)
 _ = server

@@ -28,16 +28,21 @@ final class InputController: IMKInputController {
     /// be detected); DEL is Backspace there, so DEL + retype from the first key, without underline.
     /// Never list apps that also have ordinary text fields (Orca Bots drops DEL -> "toôi").
     private static let terminals: Set<String> = ["com.googlecode.iterm2", "com.mitchellh.ghostty", "dev.warp.Warp-Stable"]
-    /// Apps that embed xterm.js terminals next to ordinary fields. Measured (VS Code, Orca): their terminal
-    /// can't be told from an ordinary field (same caret and text reports), and each needs the opposite fix
-    /// (the editor shows DEL as a box; the terminal resends or drops a replaced range). Marked text is the
-    /// one path all of their fields support, so every word there is composed, underlined until it ends.
+    /// Without Accessibility (no KeyTap): apps that mix xterm.js terminals with ordinary fields. Measured in
+    /// VS Code and Orca, the two kinds of field look the same to an input method and need opposite fixes,
+    /// so there every word is marked text, the one path all of their fields support (underlined).
     private static let embeddedTerminalApps: Set<String> = [
         "com.stablyai.orca", "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92", "com.cmuxterm.app",
         "co.zeit.hyper", "org.tabby",
     ]
     override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
         guard event.type == .keyDown, let client = sender as? IMKTextInput else { return false }
+        // With Accessibility the event tap types everywhere (see KeyTap); anything done here would break it.
+        if KeyTap.shared.owns(client.bundleIdentifier()) {
+            // A field already focused when BeKey (re)started never gets activateServer: learn it here.
+            KeyTap.shared.activate(client.bundleIdentifier(), by: self, keepWord: true)
+            return false
+        }
         // Typing fast, apps report the caret a beat late (Chrome, Slack…: "dd" came out "dđ"), and nobody
         // clicks elsewhere between two quick keys: then trust our own caret, after a pause the app's.
         fast = event.timestamp - lastKey < 0.5
@@ -101,8 +106,14 @@ final class InputController: IMKInputController {
     }
 
     // Switching app/field: never carry a half-typed word into the new client.
-    override func activateServer(_ sender: Any!) { reset(); known = NSNotFound }
-    override func deactivateServer(_ sender: Any!) { commit(sender as? IMKTextInput); known = NSNotFound }
+    override func activateServer(_ sender: Any!) {
+        reset(); known = NSNotFound
+        KeyTap.shared.activate((sender as? IMKTextInput)?.bundleIdentifier(), by: self)
+    }
+    override func deactivateServer(_ sender: Any!) {
+        commit(sender as? IMKTextInput); known = NSNotFound
+        KeyTap.shared.deactivate(by: self)
+    }
 
     private func show(_ client: IMKTextInput) {
         if marked {

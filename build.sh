@@ -7,7 +7,7 @@ mkdir -p build
 
 swiftc -swift-version 5 Sources/Engine.swift Tests/main.swift -o build/enginetest
 ./build/enginetest
-swiftc -swift-version 5 Sources/Engine.swift Sources/InputController.swift Tests/controller/main.swift -o build/controllertest
+swiftc -swift-version 5 Sources/Engine.swift Sources/KeyTap.swift Sources/InputController.swift Tests/controller/main.swift -o build/controllertest
 ./build/controllertest | tail -1
 
 APP=build/BeKey.app
@@ -17,7 +17,24 @@ swiftc -O -swift-version 5 Sources/*.swift -o "$APP/Contents/MacOS/BeKey"
 cp Info.plist "$APP/Contents/"
 [ -f build/icon.tiff ] || swift -swift-version 5 tools/icon.swift build/icon.tiff
 cp build/icon.tiff "$APP/Contents/Resources/"
-codesign --force --sign - "$APP"
+# A fixed certificate keeps the code identity stable across builds, so macOS keeps the Accessibility
+# permission (ad-hoc signing changes identity every build). Falls back to ad-hoc without it.
+KC="$HOME/.config/bekey/signing.keychain-db"
+if [ -f "$KC" ]; then
+  ORIG=$(security list-keychains -d user | sed 's/^ *"//; s/"$//')
+  set --
+  while IFS= read -r k; do [ -n "$k" ] && set -- "$@" "$k"; done <<EOF
+$ORIG
+EOF
+  trap 'security list-keychains -d user -s "$@"' EXIT   # always restore the user's keychain search list
+  security list-keychains -d user -s "$@" "$KC"
+  security unlock-keychain -p "$(cat "$HOME/.config/bekey/kcpass")" "$KC"
+  codesign --force --sign "BeKey Local Signing" "$APP"
+  security list-keychains -d user -s "$@"
+  trap - EXIT
+else
+  codesign --force --sign - "$APP"
+fi
 # A second registered copy with the same bundle id makes macOS drop BeKey from the enabled
 # input sources ("inactive", switches straight back to ABC): never leave the build copy registered.
 LSREG=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister

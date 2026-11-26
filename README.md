@@ -2,7 +2,7 @@
 
 **Bộ gõ tiếng Việt nhẹ và ổn định cho macOS**, hỗ trợ Telex và VNI.
 
-BeKey là một input method chính thức của macOS (InputMethodKit), viết bằng Swift, khoảng 300 dòng, không cần quyền Accessibility và không chạy ngầm chặn phím. Vì vậy không còn tình trạng *"đang bật tiếng Việt mà gõ không ra dấu"*.
+BeKey là một input method chính thức của macOS (InputMethodKit), viết bằng Swift, không thư viện ngoài. BeKey chỉ hoạt động khi bạn chọn nó làm nguồn nhập, nên không có tình trạng *"đang bật tiếng Việt mà gõ không ra dấu"* do hai bộ gõ tranh nhau.
 
 ## Tên gọi
 
@@ -10,9 +10,8 @@ BeKey là một input method chính thức của macOS (InputMethodKit), viết 
 
 ## Điểm nổi bật
 
-- **Ổn định:** chạy như một nguồn nhập (input source) của macOS, không dùng event tap, không giả lập phím Backspace.
-- **Không gạch chân** trong phần lớn ứng dụng (trình duyệt, Slack, TextEdit…): chữ được ghi thẳng vào ô nhập. Trong iTerm2, Ghostty, Warp BeKey sửa dấu bằng ký tự xoá lùi, cũng không gạch chân.
-- **Riêng các ứng dụng có terminal nhúng** (Orca, VS Code, Cursor, Hyper, Tabby): từ đang gõ có gạch chân cho tới khi bạn gõ dấu cách hoặc dấu câu. Ở các ứng dụng này terminal và ô nhập thường không thể phân biệt được với nhau, nên BeKey dùng cách gõ chuẩn của macOS (như bộ gõ tiếng Nhật, tiếng Trung) để chữ luôn đúng.
+- **Không gạch chân, gõ đúng ở mọi ứng dụng:** trình duyệt, Slack, VS Code (cả trình soạn thảo lẫn terminal), Orca, iTerm2, TextEdit… BeKey sửa dấu bằng phím Backspace thật và chữ mới, chèn đúng vào chỗ của phím vừa gõ, nên gõ nhanh cũng không bị lệch thứ tự, mất dấu hay lặp chữ. Cách này cần quyền **Accessibility** (xem phần thiết lập).
+- **Chỉ hoạt động khi BeKey là nguồn nhập đang chọn** và bạn đang gõ trong một ô nhập. Chuyển sang ABC là BeKey đứng ngoài hoàn toàn.
 - **Gõ tiếng Anh xen kẽ:** từ không thể là âm tiết tiếng Việt (`class`, `html`, `telex`) được giữ nguyên.
 - **Nhẹ:** khoảng 8 MB RAM, không thư viện ngoài, không kết nối mạng, không lưu lại nội dung bạn gõ.
 
@@ -45,7 +44,8 @@ macOS không cho ứng dụng tự bật bộ gõ, nên bạn thêm BeKey một 
 1. Mở **System Settings → Keyboard → Input Sources → Edit…**
 2. Bấm **+** → chọn **Vietnamese** → chọn **BeKey** → **Add**.
 3. Nếu chưa thấy BeKey trong danh sách: **đăng xuất rồi đăng nhập lại** một lần, sau đó làm lại bước 2.
-4. Nếu bạn đang dùng bộ gõ tiếng Việt khác (OpenKey, EVKey, Unikey…), hãy tắt nó và bỏ chế độ tự chạy khi đăng nhập, để hai bộ gõ không cùng xử lý một phím. Nên xoá cả bộ **Vietnamese – Telex/Simple Telex** có sẵn của macOS khỏi Input Sources: bộ này có gạch chân khi gõ và dễ bị chọn nhầm khi bấm `Ctrl + Space`.
+4. Cấp quyền **Accessibility**: lần đầu chạy, BeKey hỏi quyền này. Bấm **Open System Settings** rồi bật **BeKey** trong **Privacy & Security → Accessibility** (nếu không thấy, bấm **+** và chọn `~/Library/Input Methods/BeKey.app`, bấm `⌘⇧G` để dán đường dẫn). Không có quyền này BeKey vẫn gõ được, nhưng theo cách cũ: có thể sai dấu sau khi xoá giữa từ, và có gạch chân trong Orca, VS Code.
+5. Nếu bạn đang dùng bộ gõ tiếng Việt khác (OpenKey, EVKey, Unikey…), hãy tắt nó và bỏ chế độ tự chạy khi đăng nhập, để hai bộ gõ không cùng xử lý một phím. Nên xoá cả bộ **Vietnamese – Telex/Simple Telex** có sẵn của macOS khỏi Input Sources: bộ này có gạch chân khi gõ và dễ bị chọn nhầm khi bấm `Ctrl + Space`.
 
 ## Sử dụng
 
@@ -88,7 +88,7 @@ Sau khi gỡ, xoá BeKey khỏi **Input Sources**.
 | Không thấy biểu tượng **V** trên thanh menu (thường sau khi cài lại) | Trong **Input Sources**, xoá BeKey (**−**) rồi thêm lại (**+**) |
 | Đã chọn BeKey nhưng gõ không ra dấu | Chạy `open ~/Library/Input\ Methods/BeKey.app`. Nếu vẫn không được ở một ứng dụng đã mở từ trước, thoát hẳn ứng dụng đó (⌘Q) rồi mở lại |
 | Có ký tự lạ hoặc chữ bị lặp | Kiểm tra xem còn bộ gõ tiếng Việt nào khác đang chạy không và tắt nó |
-| Có gạch chân ở ứng dụng thường (trình duyệt, Slack…) | Nhìn biểu tượng trên thanh menu: nếu không phải **V** thì bạn đang dùng bộ Telex của macOS; xoá nó khỏi Input Sources. Trong Orca, VS Code, Cursor thì gạch chân khi đang gõ dở một từ là bình thường |
+| Có gạch chân khi gõ | Nhìn biểu tượng trên thanh menu: nếu không phải **V** thì bạn đang dùng bộ Telex của macOS; xoá nó khỏi Input Sources. Nếu đúng là BeKey: kiểm tra quyền **Accessibility** của BeKey (bật lại công tắc), rồi chạy `pkill -x BeKey; open ~/Library/Input\ Methods/BeKey.app` |
 | Trong terminal, 1–2 ký tự bị gạch chân rồi mất (vd. khi gõ "gõ", "tôi") | Không phải BeKey: plugin **zsh-syntax-highlighting** gạch chân chữ trùng tên thư mục/lệnh (`go`, `to`…) trong lúc gõ dở. Muốn tắt: thêm `ZSH_HIGHLIGHT_STYLES[path]=none` và `ZSH_HIGHLIGHT_STYLES[path_prefix]=none` vào cuối `~/.zshrc` |
 
 ## Phát triển
@@ -98,12 +98,13 @@ Sau khi gỡ, xoá BeKey khỏi **Input Sources**.
 ./build.sh install   # build và cài vào ~/Library/Input Methods
 ```
 
-`./build.sh` luôn chạy test engine trước khi build: các ca viết tay và bài kiểm tra vòng lặp cho toàn bộ 6.602 âm tiết trong `Tests/syllables.txt` (lấy từ từ điển hunspell tiếng Việt của LibreOffice), gõ theo nhiều cách bằng Telex và VNI. Ngoài ra có bài kiểm tra `InputController` với một ô nhập giả báo vị trí con trỏ trễ (như Chrome, Slack khi gõ nhanh). Bài này cũng bảo đảm BeKey không bao giờ gửi ký tự xoá lùi hay lệnh thay chữ vào Orca và VS Code.
+`./build.sh` luôn chạy test engine trước khi build: các ca viết tay và bài kiểm tra vòng lặp cho toàn bộ 6.602 âm tiết trong `Tests/syllables.txt` (lấy từ từ điển hunspell tiếng Việt của LibreOffice), gõ theo nhiều cách bằng Telex và VNI. Ngoài ra có bài kiểm tra `InputController` với một ô nhập giả báo vị trí con trỏ trễ (như Chrome, Slack khi gõ nhanh). Phần ghép chữ của cách gõ bằng phím thật (`Composer`) được kiểm tra trên một màn hình giả chỉ nhận phím, như terminal.
 
 | File | Vai trò |
 |---|---|
 | `Sources/Engine.swift` | Chuyển chuỗi phím thành chữ Việt (không giữ trạng thái) |
-| `Sources/InputController.swift` | Kết nối InputMethodKit: ghi chữ vào ứng dụng, menu Telex/VNI |
+| `Sources/KeyTap.swift` | Gõ bằng phím thật (event tap, cần Accessibility): chặn phím, chèn Backspace và chữ đúng |
+| `Sources/InputController.swift` | Kết nối InputMethodKit: cho KeyTap biết ô nhập đang dùng; khi chưa có Accessibility thì tự ghi chữ vào ứng dụng; menu Telex/VNI |
 | `Sources/main.swift` | Khởi động bộ gõ, lệnh `--install` |
 | `Casks/bekey.rb` | Công thức cài đặt qua Homebrew |
 
