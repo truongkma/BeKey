@@ -1,6 +1,6 @@
 cask "bekey" do
-  version "1.0.9"
-  sha256 "1396b588bd4f11bd83654e99364da07c70b44d21859605a0a15133e681d97129"
+  version "1.0.10"
+  sha256 "0afdbe1df4bf90f3b118cbccc52a92cb132f70c1f858073610f59df613b603af"
 
   url "https://github.com/truongkma/BeKey/releases/download/v#{version}/BeKey-#{version}.zip"
   name "BeKey"
