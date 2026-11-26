@@ -1,6 +1,6 @@
 cask "bekey" do
-  version "1.0.8"
-  sha256 "4cf9dc3ab89b20e3311ff7c9459ed6be376e1cbd83ca31023ded7d50eafd935a"
+  version "1.0.9"
+  sha256 "1396b588bd4f11bd83654e99364da07c70b44d21859605a0a15133e681d97129"
 
   url "https://github.com/truongkma/BeKey/releases/download/v#{version}/BeKey-#{version}.zip"
   name "BeKey"
@@ -27,6 +27,8 @@ cask "bekey" do
 
   caveats <<~EOS
     First time only: System Settings > Keyboard > Input Sources > Edit > + > Vietnamese > BeKey.
+    Then allow BeKey in System Settings > Privacy & Security > Accessibility when asked: it types
+    with real key events, which is what keeps every app correct and free of underlines.
     After an upgrade, the new version is used from your next login.
   EOS
 end
