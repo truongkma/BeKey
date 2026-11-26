@@ -7,28 +7,34 @@ final class Mock: NSObject, IMKTextInput {
     init(lag: Int, app: String = "com.google.Chrome") { self.lag = lag; self.app = app }
     func record() { history.append(pos) }
     func reported() -> Int { history[max(0, history.count - 1 - lag)] }
-    var xterm = false   // Orca's xterm.js: drops inserts that replace text, DEL = Backspace, caret report stays ~1
+    /// Apps with xterm.js terminals next to ordinary fields. Measured in VS Code and Orca: a replaced range
+    /// wrecks the terminal (resent or dropped) and DEL wrecks the editor (shown as a box), and the two kinds
+    /// of field look the same to an input method. So there, only marked text is allowed, ever.
+    var composeOnly: Bool { ["com.stablyai.orca", "com.microsoft.VSCode"].contains(app) }
+    var mark: NSRange? = nil, broke = ""
     func insertText(_ string: Any!, replacementRange r: NSRange) {
-        let all = Array(((string as? NSAttributedString)?.string ?? string as! String).utf16)
-        if xterm {
-            if r.location != NSNotFound { return }
-            for u in all { if u == 0x7f { if !text.isEmpty { text.removeLast() } } else { text.append(u) } }
-            return
-        }
-        let s = all.filter { $0 != 0x7f }   // ordinary fields drop DEL
-        let range = r.location == NSNotFound ? NSRange(location: pos, length: 0) : r
+        let s = Array(((string as? NSAttributedString)?.string ?? string as! String).utf16)
+        if composeOnly, s.contains(0x7f) { broke = "DEL sent to \(app)" }
+        if composeOnly, r.location != NSNotFound { broke = "replacement range sent to \(app)" }
+        let range = r.location != NSNotFound ? r : mark ?? NSRange(location: pos, length: 0)   // commits the composition
+        mark = nil
         text.replaceSubrange(range.location..<range.location + range.length, with: s)
         pos = range.location + s.count; record()
     }
     func typeByApp(_ c: String) { insertText(c, replacementRange: NSRange(location: NSNotFound, length: 0)) }
     func backspaceByApp() { if pos > 0 { text.remove(at: pos - 1); pos -= 1; record() } }
-    func setMarkedText(_ string: Any!, selectionRange: NSRange, replacementRange: NSRange) { fatalError("marked") }
+    func setMarkedText(_ string: Any!, selectionRange: NSRange, replacementRange: NSRange) {
+        let s = Array(((string as? NSAttributedString)?.string ?? string as! String).utf16)
+        let range = mark ?? NSRange(location: pos, length: 0)
+        text.replaceSubrange(range.location..<range.location + range.length, with: s)
+        mark = s.isEmpty ? nil : NSRange(location: range.location, length: s.count)
+        pos = range.location + s.count; record()
+    }
     func selectedRange() -> NSRange {
-        if xterm { return NSRange(location: 1, length: 0) }
         if staleOnce { staleOnce = false; return NSRange(location: oncePos, length: 0) }
         return NSRange(location: reported(), length: 0)
     }
-    func markedRange() -> NSRange { NSRange(location: NSNotFound, length: 0) }
+    func markedRange() -> NSRange { mark ?? NSRange(location: NSNotFound, length: 0) }
     func attributedSubstring(from range: NSRange) -> NSAttributedString! { nil }
     func length() -> Int { text.count }
     func characterIndex(for point: NSPoint, tracking mappingMode: IMKLocationToOffsetMappingMode, inMarkedRange: UnsafeMutablePointer<ObjCBool>!) -> Int { 0 }
@@ -55,22 +61,23 @@ func key(_ c: Character, _ code: UInt16 = 0) -> NSEvent {
 }
 UserDefaults.standard.set("telex", forKey: "method")   // test process's own defaults domain
 var fails = 0
-func run(_ typed: String, _ want: String, lag: Int, prefix: String = "", app: String = "com.google.Chrome", xterm: Bool = false) {
-    let m = Mock(lag: lag, app: app); m.xterm = xterm; for c in prefix { m.typeByApp(String(c)) }
+func run(_ typed: String, _ want: String, lag: Int, prefix: String = "", app: String = "com.google.Chrome") {
+    let m = Mock(lag: lag, app: app); for c in prefix { m.typeByApp(String(c)) }
     for _ in 0..<lag { m.record() }   // a pause: the app's report catches up
     clock += 5
     let ic = InputController()
     for c in typed {
         if c == "|" {   // pause, then click at the start of the text
+            if m.mark != nil { ic.commitComposition(m) }   // apps end the composition on a click
             clock += 2; m.pos = 0; for _ in 0...lag { m.record() }
         } else if c == "<" {   // backspace
             if !ic.handle(key("\u{7f}", 51), client: m) { m.backspaceByApp() }
         } else if !ic.handle(key(c), client: m) { m.typeByApp(String(c)) }
     }
     ic.commitComposition(m)
-    let ok = m.str == prefix + want
+    let ok = m.str == prefix + want && m.broke.isEmpty && m.mark == nil
     if !ok { fails += 1 }
-    if !ok { print("FAIL lag=\(lag)", typed, "->", m.str) }
+    if !ok { print("FAIL lag=\(lag) \(app)", typed, "->", m.str, m.broke, m.mark == nil ? "" : "composition left open") }
 }
 for lag in 0...2 {
     run("ddaay tooi ddaay nguwowif ", "đây tôi đây người ", lag: lag)
@@ -81,12 +88,13 @@ for lag in 0...2 {
     run("ddi <ddaay ", "điđây ", lag: lag)
     if lag == 0 { run("ddi\rddaay ", "đi\rđây ", lag: lag) }
     run("toi ddi. ddaay, ok ", "toi đi. đây, ok ", lag: lag)
-    if lag < 2 { run("bij thieeus daaus ", "bị thiếu dấu ", lag: lag, app: "com.stablyai.orca") }   // Orca non-terminal field
+    for app in ["com.stablyai.orca", "com.microsoft.VSCode"] {   // terminal or not: always composed
+        run("tooi ddang test gox thuwr nhuwng khoong bij thieeus daaus ", "tôi đang tét gõ thử nhưng không bị thiếu dấu ", lag: lag, app: app)
+        run("ddi ddaay Vieejt Nam nguwowif hoawcj tieengs ", "đi đây Việt Nam người hoặc tiếng ", lag: lag, prefix: "xin ", app: app)
+        run("ddaaay<<y tesst ddi|ddaay ", "đây đây test đi", lag: lag, app: app)
+        run("ddi<<<<tooi\rddi ", "tôi\rđi ", lag: lag, app: app)
+    }
 }
-run("ddi tooi ddaay nguwowif ", "đi tôi đây người ", lag: 0, app: "com.stablyai.orca", xterm: true)   // Orca terminal
-run("bij thieeus ", "bị thiếu ", lag: 0, app: "com.stablyai.orca", xterm: true)
-run("tet thuwr gox nhuwng khoong onr tooi ", "tet thử gõ nhưng không ỏn tôi ", lag: 0, app: "com.stablyai.orca", xterm: true)
-run("ddi ", "đi ", lag: 0, app: "com.stablyai.orca", xterm: true)
 do {   // realistic: right after Enter the first report is late once, the next key sees the truth
     let m = Mock(lag: 0); let ic = InputController(); clock += 5
     for c in "ddi" { _ = ic.handle(key(c), client: m) }

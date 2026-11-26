@@ -20,19 +20,18 @@ final class InputController: IMKInputController {
     private var fast = false        // this key came right after the previous one
     private var lastKey: TimeInterval = 0
     private var guessed = false     // the word's start came from the app's (maybe late) report
-    private var sent = ""           // what a terminal holds of this word: it drops inserts that replace text
-    private var marked = false      // fallback when the caret is unknown: use marked text
+    private var marked = false      // compose as marked text (underlined until the word ends)
     private var committed = ""      // start of the word already sent before switching to marked text
     private var erase = false       // app can't replace text (terminal): fix the word with DEL + retype
 
     /// Native terminal emulators ignore replacementRange (iTerm2 even reports a correct caret, so it can't
     /// be detected); DEL is Backspace there, so DEL + retype from the first key, without underline.
-    /// Never list apps that also have ordinary text fields (Orca Bots drops DEL -> "toôi"): those are
-    /// handled per field by the caret check, falling back to marked text.
+    /// Never list apps that also have ordinary text fields (Orca Bots drops DEL -> "toôi").
     private static let terminals: Set<String> = ["com.googlecode.iterm2", "com.mitchellh.ghostty", "dev.warp.Warp-Stable"]
-    /// Apps that embed xterm.js terminals next to ordinary fields. A terminal field gives itself away when
-    /// the caret snaps back after an insert; only then, and only for that word, fix it with DEL + retype
-    /// (DEL even erases the first letter already sent). Never remembered per app: other fields stay normal.
+    /// Apps that embed xterm.js terminals next to ordinary fields. Measured (VS Code, Orca): their terminal
+    /// can't be told from an ordinary field (same caret and text reports), and each needs the opposite fix
+    /// (the editor shows DEL as a box; the terminal resends or drops a replaced range). Marked text is the
+    /// one path all of their fields support, so every word there is composed, underlined until it ends.
     private static let embeddedTerminalApps: Set<String> = [
         "com.stablyai.orca", "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92", "com.cmuxterm.app",
         "co.zeit.hyper", "org.tabby",
@@ -52,9 +51,7 @@ final class InputController: IMKInputController {
         }
         if !keys.isEmpty, !marked, !erase {
             let location = client.selectedRange().location
-            if stuck(client, at: location) {
-                becomeTerminal(client)
-            } else if !fast, location != NSNotFound, location != caret {
+            if !fast, location != NSNotFound, location != caret {
                 reset()   // after a pause the app's caret is reliable: the user clicked / moved it
             } else if guessed, keys.count == 1, location != NSNotFound, location > caret {
                 before += location - caret   // that first report was late (e.g. right after Enter)
@@ -83,7 +80,7 @@ final class InputController: IMKInputController {
                 let noCaret = client.selectedRange().location == NSNotFound
                 // A caret-less field inside an app with embedded terminals is a terminal (cmux's Ghostty view).
                 erase = Self.terminals.contains(app) || (noCaret && Self.embeddedTerminalApps.contains(app))
-                marked = !erase && noCaret
+                marked = !erase && (noCaret || Self.embeddedTerminalApps.contains(app))
                 if erase || marked { known = NSNotFound }   // those modes don't track the caret
             }
             keys.append(ch)
@@ -113,6 +110,7 @@ final class InputController: IMKInputController {
             client.setMarkedText(text,
                                  selectionRange: NSRange(location: text.utf16.count, length: 0),
                                  replacementRange: notFound)
+            if keys.isEmpty { reset() }
             return
         }
         let text = keys.isEmpty ? "" : Engine(method: Settings.method).convert(keys)
@@ -140,7 +138,6 @@ final class InputController: IMKInputController {
         let location = before - oldTail
         client.insertText(newTail, replacementRange: oldTail == 0 ? notFound : NSRange(location: location, length: oldTail))
         shown = text
-        if oldTail == 0 { sent += newTail }
         caret = location + newTail.utf16.count
         known = caret
         if keys.isEmpty { reset() }
@@ -153,26 +150,7 @@ final class InputController: IMKInputController {
         return text.hasPrefix(committed) ? String(text.dropFirst(committed.count)) : text
     }
 
-    /// xterm.js reports a caret that doesn't follow the text (Orca: about 1 while the line grows) and drops
-    /// inserts that replace text. A late report (typing fast) is one insert behind, i.e. at `before`, never before it.
-    /// shortcut: a report 2+ inserts late in an ordinary field of these apps looks like a terminal; not seen so far.
-    private func stuck(_ client: IMKTextInput, at location: Int) -> Bool {
-        location != NSNotFound && before != NSNotFound && location < before
-            && Self.embeddedTerminalApps.contains(client.bundleIdentifier() ?? "")
-    }
-
-    /// Switch this word to DEL + retype; the terminal holds everything we appended, so fix it from there.
-    private func becomeTerminal(_ client: IMKTextInput) {
-        erase = true
-        known = NSNotFound   // like the other DEL modes, don't track the caret
-        shown = sent
-        show(client)
-    }
-
     private func commit(_ client: IMKTextInput?) {
-        if let client, !keys.isEmpty, !marked, !erase, stuck(client, at: client.selectedRange().location) {
-            becomeTerminal(client)
-        }
         if marked, !keys.isEmpty, let client {
             client.insertText(pending(), replacementRange: notFound)
         }
@@ -187,7 +165,6 @@ final class InputController: IMKInputController {
         marked = false
         committed = ""
         erase = false
-        sent = ""
     }
 
     // MARK: input-menu (the "V" icon in the menu bar)

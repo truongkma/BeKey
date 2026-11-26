@@ -11,7 +11,8 @@ BeKey là một input method chính thức của macOS (InputMethodKit), viết 
 ## Điểm nổi bật
 
 - **Ổn định:** chạy như một nguồn nhập (input source) của macOS, không dùng event tap, không giả lập phím Backspace.
-- **Không gạch chân** trong phần lớn ứng dụng: chữ được ghi thẳng vào ô nhập. Trong terminal (Orca, cmux, VS Code, iTerm2…) BeKey sửa dấu bằng ký tự xoá lùi, cũng không gạch chân.
+- **Không gạch chân** trong phần lớn ứng dụng (trình duyệt, Slack, TextEdit…): chữ được ghi thẳng vào ô nhập. Trong iTerm2, Ghostty, Warp BeKey sửa dấu bằng ký tự xoá lùi, cũng không gạch chân.
+- **Riêng các ứng dụng có terminal nhúng** (Orca, VS Code, Cursor, Hyper, Tabby): từ đang gõ có gạch chân cho tới khi bạn gõ dấu cách hoặc dấu câu. Ở các ứng dụng này terminal và ô nhập thường không thể phân biệt được với nhau, nên BeKey dùng cách gõ chuẩn của macOS (như bộ gõ tiếng Nhật, tiếng Trung) để chữ luôn đúng.
 - **Gõ tiếng Anh xen kẽ:** từ không thể là âm tiết tiếng Việt (`class`, `html`, `telex`) được giữ nguyên.
 - **Nhẹ:** khoảng 8 MB RAM, không thư viện ngoài, không kết nối mạng, không lưu lại nội dung bạn gõ.
 
@@ -87,7 +88,7 @@ Sau khi gỡ, xoá BeKey khỏi **Input Sources**.
 | Không thấy biểu tượng **V** trên thanh menu (thường sau khi cài lại) | Trong **Input Sources**, xoá BeKey (**−**) rồi thêm lại (**+**) |
 | Đã chọn BeKey nhưng gõ không ra dấu | Chạy `open ~/Library/Input\ Methods/BeKey.app`. Nếu vẫn không được ở một ứng dụng đã mở từ trước, thoát hẳn ứng dụng đó (⌘Q) rồi mở lại |
 | Có ký tự lạ hoặc chữ bị lặp | Kiểm tra xem còn bộ gõ tiếng Việt nào khác đang chạy không và tắt nó |
-| Thỉnh thoảng có gạch chân | Nhìn biểu tượng trên thanh menu: nếu không phải **V** thì bạn đang dùng bộ Telex của macOS; xoá nó khỏi Input Sources |
+| Có gạch chân ở ứng dụng thường (trình duyệt, Slack…) | Nhìn biểu tượng trên thanh menu: nếu không phải **V** thì bạn đang dùng bộ Telex của macOS; xoá nó khỏi Input Sources. Trong Orca, VS Code, Cursor thì gạch chân khi đang gõ dở một từ là bình thường |
 | Trong terminal, 1–2 ký tự bị gạch chân rồi mất (vd. khi gõ "gõ", "tôi") | Không phải BeKey: plugin **zsh-syntax-highlighting** gạch chân chữ trùng tên thư mục/lệnh (`go`, `to`…) trong lúc gõ dở. Muốn tắt: thêm `ZSH_HIGHLIGHT_STYLES[path]=none` và `ZSH_HIGHLIGHT_STYLES[path_prefix]=none` vào cuối `~/.zshrc` |
 
 ## Phát triển
@@ -97,7 +98,7 @@ Sau khi gỡ, xoá BeKey khỏi **Input Sources**.
 ./build.sh install   # build và cài vào ~/Library/Input Methods
 ```
 
-`./build.sh` luôn chạy test engine trước khi build: các ca viết tay và bài kiểm tra vòng lặp cho toàn bộ 6.602 âm tiết trong `Tests/syllables.txt` (lấy từ từ điển hunspell tiếng Việt của LibreOffice), gõ theo nhiều cách bằng Telex và VNI. Ngoài ra có bài kiểm tra `InputController` với một ô nhập giả báo vị trí con trỏ trễ (như Chrome, Slack khi gõ nhanh).
+`./build.sh` luôn chạy test engine trước khi build: các ca viết tay và bài kiểm tra vòng lặp cho toàn bộ 6.602 âm tiết trong `Tests/syllables.txt` (lấy từ từ điển hunspell tiếng Việt của LibreOffice), gõ theo nhiều cách bằng Telex và VNI. Ngoài ra có bài kiểm tra `InputController` với một ô nhập giả báo vị trí con trỏ trễ (như Chrome, Slack khi gõ nhanh). Bài này cũng bảo đảm BeKey không bao giờ gửi ký tự xoá lùi hay lệnh thay chữ vào Orca và VS Code.
 
 | File | Vai trò |
 |---|---|
