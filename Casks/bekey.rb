@@ -29,6 +29,7 @@ cask "bekey" do
     First time only: System Settings > Keyboard > Input Sources > Edit > + > Vietnamese > BeKey.
     Then allow BeKey in System Settings > Privacy & Security > Accessibility when asked: it types
     with real key events, which is what keeps every app correct and free of underlines.
-    After an upgrade, the new version is used from your next login.
+    After an upgrade, the new version is used from your next login. To use it now:
+      pkill -x BeKey; open ~/Library/Input\\ Methods/BeKey.app
   EOS
 end
