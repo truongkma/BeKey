@@ -17,7 +17,7 @@ BeKey là một input method chính thức của macOS (InputMethodKit), viết 
 
 ## Cài đặt
 
-Yêu cầu macOS 13 trở lên.
+Yêu cầu macOS 13 trở lên, chip Apple hoặc Intel.
 
 ### Cách 1: Homebrew (khuyên dùng)
 

@@ -13,7 +13,13 @@ swiftc -swift-version 5 Sources/Engine.swift Sources/KeyTap.swift Sources/InputC
 APP=build/BeKey.app
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-swiftc -O -swift-version 5 Sources/*.swift -o "$APP/Contents/MacOS/BeKey"
+# swiftc targets the build machine's macOS and CPU by default; Info.plist and the cask promise macOS 13+
+# on Apple silicon and Intel, so build both slices for macOS 13 and join them.
+for arch in arm64 x86_64; do
+  swiftc -O -swift-version 5 -target "$arch-apple-macos13.0" Sources/*.swift -o "build/BeKey-$arch"
+done
+lipo -create build/BeKey-arm64 build/BeKey-x86_64 -output "$APP/Contents/MacOS/BeKey"
+rm -f build/BeKey-arm64 build/BeKey-x86_64
 cp Info.plist "$APP/Contents/"
 [ -f build/icon.tiff ] || swift -swift-version 5 tools/icon.swift build/icon.tiff
 cp build/icon.tiff "$APP/Contents/Resources/"
