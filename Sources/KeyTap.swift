@@ -58,6 +58,9 @@ struct Composer {
 /// is not granted. It is still what tells the tap a text field is focused (activate/deactivate).
 final class KeyTap {
     static let shared = KeyTap()
+    /// Key code for the text we inject: one no keyboard has. With a real key's code, an app drops the text
+    /// while that key is still held (fast typing rolls over: "a" not yet released when "s" makes "á").
+    private static let textKey: CGKeyCode = 52
     private static let mark: Int64 = 0x42654B6579   // "BeKey": events we inject, so the tap lets them pass
 
     private var tap: CFMachPort?
@@ -126,7 +129,7 @@ final class KeyTap {
         }
         guard case let .replace(back, text) = action else { return pass }
         for _ in 0..<back { inject(proxy, key: 51, text: nil) }
-        for ch in text { inject(proxy, key: 0, text: String(ch)) }
+        for ch in text { inject(proxy, key: Self.textKey, text: String(ch)) }
         return nil
     }
 
