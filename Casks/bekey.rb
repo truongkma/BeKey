@@ -7,7 +7,7 @@ cask "bekey" do
   desc "Lightweight Vietnamese input method (Telex, VNI)"
   homepage "https://github.com/truongkma/BeKey"
 
-  depends_on macos: ">= :ventura"
+  depends_on macos: :ventura
 
   input_method "BeKey.app"
 
