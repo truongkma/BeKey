@@ -15,10 +15,12 @@ cask "bekey" do
     app = "#{Dir.home}/Library/Input Methods/BeKey.app"
     # Ad-hoc signed (no Apple Developer ID): drop quarantine so Gatekeeper lets macOS launch it.
     system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", app]
+    # An upgrade deletes and replaces the bundle, which drops BeKey from the enabled input sources
+    # ("inactive"): always re-register and re-enable. This does not stop the running BeKey.
+    system_command "#{app}/Contents/MacOS/BeKey", args: ["--install"], must_succeed: false
     # Never kill a running BeKey: Electron/Chromium apps would lose their input-method connection
     # until reopened. An upgrade takes effect at the next login; a first install starts it now.
     unless system_command("/usr/bin/pgrep", args: ["-x", "BeKey"], must_succeed: false).success?
-      system_command "#{app}/Contents/MacOS/BeKey", args: ["--install"], must_succeed: false
       system_command "/usr/bin/open", args: [app], must_succeed: false
     end
   end
