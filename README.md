@@ -105,6 +105,7 @@ Sau khi gỡ, xoá BeKey khỏi **Input Sources**.
 | `Sources/Engine.swift` | Chuyển chuỗi phím thành chữ Việt (không giữ trạng thái) |
 | `Sources/KeyTap.swift` | Gõ bằng phím thật (event tap, cần Accessibility): chặn phím, chèn Backspace và chữ đúng |
 | `Sources/InputController.swift` | Kết nối InputMethodKit: cho KeyTap biết ô nhập đang dùng; khi chưa có Accessibility thì tự ghi chữ vào ứng dụng; menu Telex/VNI |
+| `Sources/SecureInput.swift` | Tự bật lại BeKey khi ô mật khẩu (Secure Input) đã ép sang ABC mà macOS không trả lại |
 | `Sources/main.swift` | Khởi động bộ gõ, lệnh `--install` |
 | `Casks/bekey.rb` | Công thức cài đặt qua Homebrew |
 

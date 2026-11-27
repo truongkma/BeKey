@@ -33,4 +33,5 @@ if !AXIsProcessTrusted(), UserDefaults.standard.string(forKey: "askedAccessibili
 let server = IMKServer(name: bundle.infoDictionary!["InputMethodConnectionName"] as? String,
                        bundleIdentifier: bundle.bundleIdentifier)
 _ = server
+SecureInput.watch()
 NSApplication.shared.run()
